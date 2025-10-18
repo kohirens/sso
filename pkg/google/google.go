@@ -66,7 +66,7 @@ func NewAuth() (*OAuth2, error) {
 
 // NewProvider Initialize a Google OIDC provider to authenticate a client
 // requesting access to your application.
-func NewProvider(client HttpClient, store storage.Storage) (*Provider, error) {
+func NewProvider(client HttpClient, store storage.Storage, session Session) (*Provider, error) {
 	oauth2, e1 := NewAuth()
 	if e1 != nil {
 		return nil, e1
@@ -84,6 +84,7 @@ func NewProvider(client HttpClient, store storage.Storage) (*Provider, error) {
 		Scopes:       []string{"openid", "profile", "email"},
 		State:        NewStateWith(oauth2.RedirectURI),
 		client:       client,
+		session:      session,
 		store:        store,
 	}, nil
 }

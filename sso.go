@@ -15,7 +15,7 @@ type OIDCProvider interface {
 	// ClientID Make an ID unique to the client.
 	ClientID() string
 	// SignOut Sign out of the OIDC provider.
-	SignOut() string
+	SignOut() error
 }
 
 type SessionManager interface {

@@ -31,21 +31,22 @@ type Provider struct {
 	Scopes    []string `json:"scopes"`
 	State     string   `json:"state"`
 	// Credentials Clients login username and password.
-	Token  *Token `json:"credentials"`
-	client HttpClient
-	store  storage.Storage
+	Token   *Token `json:"credentials"`
+	client  HttpClient
+	session Session
+	store   storage.Storage
 }
 
 // Authenticated Indicates if the HttpClient has been successfully authenticated by
 // Google.
-func (gp *Provider) Authenticated() bool {
+func (p *Provider) Authenticated() bool {
 	Log.Dbugf(stdout.VerifyAuth)
 
-	return gp.Token != nil && !gp.Token.Expired() // Time has expired
+	return p.Token != nil && !p.Token.Expired() // Time has expired
 }
 
 // AuthLink Generate a link to authenticate with the provider.
-func (gp *Provider) AuthLink(loginHint string) (string, error) {
+func (p *Provider) AuthLink(loginHint string) (string, error) {
 	epAuthentication := os.Getenv(envOIDCAuthURI)
 	if epAuthentication == "" {
 		return "", fmt.Errorf(stderr.MissEnvVar, envOIDCAuthURI)
@@ -57,10 +58,10 @@ func (gp *Provider) AuthLink(loginHint string) (string, error) {
 	uri := fmt.Sprintf(
 		"%v?response_type=code&scope=%v&redirect_uri=%v&client_id=%v&state=%v&nonce=%v&access_type=offline&prompt=consent",
 		epAuthentication,
-		strings.Join(gp.Scopes, "%20"),
-		url.QueryEscape(gp.OAuth2.RedirectURI),
-		gp.OAuth2.ClientID,
-		gp.State,
+		strings.Join(p.Scopes, "%20"),
+		url.QueryEscape(p.OAuth2.RedirectURI),
+		p.OAuth2.ClientID,
+		p.State,
 		NewNonce(),
 	)
 
@@ -68,8 +69,8 @@ func (gp *Provider) AuthLink(loginHint string) (string, error) {
 		uri = uri + "&login_hint=" + loginHint
 	}
 
-	if gp.Hd != "" {
-		uri = uri + "&hd=" + gp.Hd
+	if p.Hd != "" {
+		uri = uri + "&hd=" + p.Hd
 	}
 
 	Log.Dbugf("Google OIDC Auth URI: %s", uri)
@@ -78,15 +79,15 @@ func (gp *Provider) AuthLink(loginHint string) (string, error) {
 }
 
 // Certificate JWK Download the certificates for validating ID tokens from Google.
-func (gp *Provider) Certificate() error {
-	uri := gp.DiscoveryDoc.JwksUri
+func (p *Provider) Certificate() error {
+	uri := p.DiscoveryDoc.JwksUri
 	if uri == "" {
 		return fmt.Errorf(stderr.MissEnvVar, envOIDCCertURL)
 	}
 
 	Log.Infof(stdout.Url, uri)
 
-	res, e1 := gp.sendWithRetry("GET", uri, nil, nil, 200, 3)
+	res, e1 := p.sendWithRetry("GET", uri, nil, nil, 200, 3)
 	if e1 != nil {
 		return fmt.Errorf(stderr.Response, e1.Error())
 	}
@@ -97,7 +98,7 @@ func (gp *Provider) Certificate() error {
 	}
 
 	var err error
-	gp.JWKs, err = LoadJwksUriv3(resBody)
+	p.JWKs, err = LoadJwksUriv3(resBody)
 	if err != nil {
 		return err
 	}
@@ -113,8 +114,8 @@ func (gp *Provider) Certificate() error {
 // user changes their email address.
 // For details see:
 // https://developers.google.com/identity/openid-connect/openid-connect#obtainuserinfo
-func (gp *Provider) ClientID() string {
-	idToken, e1 := gp.Token.IDTokenInfo()
+func (p *Provider) ClientID() string {
+	idToken, e1 := p.Token.IDTokenInfo()
 	if e1 != nil {
 		panic(e1)
 	}
@@ -122,10 +123,10 @@ func (gp *Provider) ClientID() string {
 	if !ok {
 		panic(fmt.Sprintf(stderr.IDTokenNoSub))
 	}
-	return fmt.Sprintf("%v-google-%v", gp.Name(), sub.(string))
+	return fmt.Sprintf("%v-google-%v", p.Name(), sub.(string))
 }
 
-func (gp *Provider) DiscoveryDocDownload() error {
+func (p *Provider) DiscoveryDocDownload() error {
 	uri := os.Getenv(envDiscoverDocURL)
 	if uri == "" {
 		return fmt.Errorf(stderr.MissEnvVar, envDiscoverDocURL)
@@ -133,7 +134,7 @@ func (gp *Provider) DiscoveryDocDownload() error {
 
 	Log.Infof(stdout.Url, uri)
 
-	res, e1 := gp.sendWithRetry("GET", uri, nil, nil, 200, 3)
+	res, e1 := p.sendWithRetry("GET", uri, nil, nil, 200, 3)
 	if e1 != nil {
 		return fmt.Errorf(stderr.Response, e1.Error())
 	}
@@ -143,36 +144,36 @@ func (gp *Provider) DiscoveryDocDownload() error {
 		return fmt.Errorf(stderr.ReadResponse, e2.Error())
 	}
 
-	if e := json.Unmarshal(resBody, gp.DiscoveryDoc); e != nil {
+	if e := json.Unmarshal(resBody, p.DiscoveryDoc); e != nil {
 		return fmt.Errorf(stderr.DecodeJSON, e.Error())
 	}
 
-	gp.DiscoveryDoc.rawBytes = resBody
+	p.DiscoveryDoc.rawBytes = resBody
 
 	return nil
 }
 
-func (gp *Provider) DiscoverDoc(dd []byte) error {
-	if e := json.Unmarshal(dd, gp.DiscoveryDoc); e != nil {
+func (p *Provider) DiscoverDoc(dd []byte) error {
+	if e := json.Unmarshal(dd, p.DiscoveryDoc); e != nil {
 		return fmt.Errorf(stderr.DecodeJSON, e.Error())
 	}
 
-	gp.DiscoveryDoc.rawBytes = dd
+	p.DiscoveryDoc.rawBytes = dd
 
 	return nil
 }
 
 // LoadCertificate Load the Google public Certificate, try from cache first,
 // then download from the internet if that fails.
-func (gp *Provider) LoadCertificate() error {
+func (p *Provider) LoadCertificate() error {
 	var e2 error
-	dd, e1 := gp.store.Load(keyCertificate)
+	dd, e1 := p.store.Load(keyCertificate)
 	if e1 != nil {
 		Log.Warnf(e1.Error())
 		goto download
 	}
 
-	gp.JWKs, e2 = LoadJwksUriv3(dd)
+	p.JWKs, e2 = LoadJwksUriv3(dd)
 	if e2 == nil {
 		return nil
 	}
@@ -182,12 +183,12 @@ download:
 	Log.Errf(stderr.CertificateCache)
 
 	// Download the Google Certificate
-	if e := gp.Certificate(); e != nil {
+	if e := p.Certificate(); e != nil {
 		return e
 	}
 
 	// Save to the storage device.
-	if e := gp.store.Save(keyCertificate, gp.JWKs.rawBytes); e != nil {
+	if e := p.store.Save(keyCertificate, p.JWKs.rawBytes); e != nil {
 		Log.Warnf(e.Error())
 	}
 
@@ -197,15 +198,15 @@ download:
 
 // LoadDiscoveryDoc Load the Google Discovery document, try from cache first,
 // then download from the internet if that fails.
-func (gp *Provider) LoadDiscoveryDoc() error {
-	dd, e1 := gp.store.Load(keyDiscoveryDoc)
+func (p *Provider) LoadDiscoveryDoc() error {
+	dd, e1 := p.store.Load(keyDiscoveryDoc)
 	if e1 != nil {
 		Log.Warnf(e1.Error())
 		goto download
 	}
 
 	{ // Even though e2 is only used before the download label, Go prevents using goto that skips over this declaration, the blocks help a little.
-		e2 := gp.DiscoverDoc(dd)
+		e2 := p.DiscoverDoc(dd)
 		if e2 == nil {
 			return nil
 		}
@@ -216,11 +217,11 @@ download:
 
 	Log.Errf(stderr.DiscoveryDocCache)
 	// Download the Google Discover Document
-	if e := gp.DiscoveryDocDownload(); e != nil {
+	if e := p.DiscoveryDocDownload(); e != nil {
 		return e
 	}
 
-	if e := gp.store.Save(keyDiscoveryDoc, gp.DiscoveryDoc.rawBytes); e != nil {
+	if e := p.store.Save(keyDiscoveryDoc, p.DiscoveryDoc.rawBytes); e != nil {
 		Log.Warnf(e.Error())
 	}
 
@@ -228,12 +229,15 @@ download:
 	return nil
 }
 
-func (gp *Provider) SignOut() {
+// SignOut Should invalidate any token used to sign in.
+// Will also remove any data stored in the session,
+func (p *Provider) SignOut() error {
 	// TODO: Implement
+	return nil
 }
 
 // ClientEmail Return the logged in clients email address.
-func (gp *Provider) ClientEmail() string {
+func (p *Provider) ClientEmail() string {
 	// TODO: Implement
 	return ""
 }
@@ -241,7 +245,7 @@ func (gp *Provider) ClientEmail() string {
 // ExchangeCodeForToken An authorization code obtained after the HttpClient
 // approves the permission request, which is then sent to Google for an ID
 // token obtained from Google.
-func (gp *Provider) ExchangeCodeForToken(state, code string) error {
+func (p *Provider) ExchangeCodeForToken(state, code string) error {
 
 	// TODO: Validate input state and code, before using
 	//if !validation.MaxLen(code, maxLen) {
@@ -249,7 +253,7 @@ func (gp *Provider) ExchangeCodeForToken(state, code string) error {
 	//	w.WriteHeader(http.StatusBadRequest)
 	//}
 
-	if e := gp.VerifyState(state); e != nil {
+	if e := p.VerifyState(state); e != nil {
 		return e
 	}
 
@@ -263,15 +267,15 @@ func (gp *Provider) ExchangeCodeForToken(state, code string) error {
 	reqBody := fmt.Sprintf(
 		"code=%v&client_id=%v&client_secret=%v&redirect_uri=%v&grant_type=authorization_code",
 		code,
-		gp.OAuth2.ClientID,
-		gp.OAuth2.ClientSecret,
-		url.QueryEscape(gp.OAuth2.RedirectURI),
+		p.OAuth2.ClientID,
+		p.OAuth2.ClientSecret,
+		url.QueryEscape(p.OAuth2.RedirectURI),
 	)
 
 	headers := http.Header{}
 	headers.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	res, e1 := gp.sendWithRetry("POST", uri, []byte(reqBody), headers, http.StatusOK, 3)
+	res, e1 := p.sendWithRetry("POST", uri, []byte(reqBody), headers, http.StatusOK, 3)
 	if e1 != nil {
 		return fmt.Errorf(e1.Error())
 	}
@@ -281,29 +285,29 @@ func (gp *Provider) ExchangeCodeForToken(state, code string) error {
 		return e3
 	}
 
-	if e := gp.ValidateToken(token); e != nil {
+	if e := p.ValidateToken(token); e != nil {
 		return e
 	}
 
-	gp.Token = token
+	p.Token = token
 
-	Log.Dbugf(stdout.GoogleTokenExp, gp.Token.ExpiresIn)
+	Log.Dbugf(stdout.GoogleTokenExp, p.Token.ExpiresIn)
 
 	return nil
 }
 
-func (gp *Provider) HasTokenExpired(auth2 *OAuth2) bool {
+func (p *Provider) HasTokenExpired(auth2 *OAuth2) bool {
 	// TODO Implement
 	return true
 }
 
 // Name ID of the OIDC application registered with the provider
-func (gp *Provider) Name() string {
-	return gp.ProjectID
+func (p *Provider) Name() string {
+	return p.ProjectID
 }
 
 // RefreshToken Get a new token from Google authentication servers.
-func (gp *Provider) RefreshToken() error {
+func (p *Provider) RefreshToken() error {
 	uri := os.Getenv(envOIDCTokenURI)
 	if uri == "" {
 		return fmt.Errorf(stderr.MissEnvVar, envOIDCTokenURI)
@@ -311,14 +315,14 @@ func (gp *Provider) RefreshToken() error {
 
 	reqBody := fmt.Sprintf(
 		"client_id=%v&client_secret=%v&refresh_token=%v&grant_type=refresh_token",
-		gp.OAuth2.ClientID,
-		gp.OAuth2.ClientSecret,
-		gp.Token.RefreshToken,
+		p.OAuth2.ClientID,
+		p.OAuth2.ClientSecret,
+		p.Token.RefreshToken,
 	)
 
 	headers := http.Header{}
 	headers.Add("Content-Type", "application/x-www-form-urlencoded")
-	res, e1 := gp.sendWithRetry("POST", uri, []byte(reqBody), headers, http.StatusOK, 3)
+	res, e1 := p.sendWithRetry("POST", uri, []byte(reqBody), headers, http.StatusOK, 3)
 	if e1 != nil {
 		return fmt.Errorf(e1.Error())
 	}
@@ -328,24 +332,24 @@ func (gp *Provider) RefreshToken() error {
 		return e3
 	}
 
-	if e := gp.ValidateToken(token); e != nil {
+	if e := p.ValidateToken(token); e != nil {
 		return e
 	}
 
-	gp.Token = token
+	p.Token = token
 
 	return nil
 }
 
 // StorageID An ID safe to use as a key or filename when storing this data.
-func (gp *Provider) StorageID() string {
+func (p *Provider) StorageID() string {
 	//TODO ClientID also has -google- in it.
-	return fmt.Sprintf("%v-google-%x", gp.Name(), md5.Sum([]byte(gp.ClientID())))
+	return fmt.Sprintf("%v-google-%x", p.Name(), md5.Sum([]byte(p.ClientID())))
 }
 
 // ValidateToken Validate an ID token came from Google.
 // https://developers.google.com/identity/openid-connect/openid-connect#validatinganidtoken
-func (gp *Provider) ValidateToken(token *Token) error {
+func (p *Provider) ValidateToken(token *Token) error {
 	if token == nil {
 		return fmt.Errorf(stderr.ValidateTokenNil)
 	}
@@ -356,12 +360,12 @@ func (gp *Provider) ValidateToken(token *Token) error {
 		return fmt.Errorf(stderr.ParsingIDToken, e1.Error())
 	}
 
-	if gp.JWKs == nil {
+	if p.JWKs == nil {
 		return fmt.Errorf(stderr.NoCerts)
 	}
 
 	// Get the RSA public keys which we have retrieved from Google.
-	keys, e2 := ParseRSAPublicKeys(gp.JWKs.Keys)
+	keys, e2 := ParseRSAPublicKeys(p.JWKs.Keys)
 	if e2 != nil {
 		return fmt.Errorf(stderr.ValidateTokenKeys, e2.Error())
 	}
@@ -379,22 +383,22 @@ func (gp *Provider) ValidateToken(token *Token) error {
 
 	// 2. Verify that the value of the iss claim in the ID token is equal to https://accounts.google.com or accounts.google.com.
 	iss, ok1 := info.Payload["iss"]
-	if !ok1 || gp.DiscoveryDoc.Issuer != iss {
+	if !ok1 || p.DiscoveryDoc.Issuer != iss {
 		return fmt.Errorf(stderr.ValidateTokenIss, iss)
 	}
 
 	// 3. Verify that the value of the aud claim in the ID token is equal to your app's client ID.
 	encAud, ok2 := info.Payload["aud"]
 	if !ok2 {
-		return fmt.Errorf(stderr.ValidateTokenAud, encAud, gp.ProjectID)
+		return fmt.Errorf(stderr.ValidateTokenAud, encAud, p.ProjectID)
 	}
 	aud, e4 := url.QueryUnescape(encAud.(string))
 	if e4 != nil {
 		return fmt.Errorf(stderr.AudDecode, e4.Error())
 	}
 
-	if aud != gp.OAuth2.ClientID {
-		return fmt.Errorf(stderr.ValidateTokenPrj, encAud, gp.OAuth2.ClientID)
+	if aud != p.OAuth2.ClientID {
+		return fmt.Errorf(stderr.ValidateTokenPrj, encAud, p.OAuth2.ClientID)
 	}
 
 	// 4. Verify that the expiry time (exp claim) of the ID token has not passed.
@@ -404,10 +408,10 @@ func (gp *Provider) ValidateToken(token *Token) error {
 
 	// TODO: Test with an hd passed into the authorization URL.
 	// 5. If you specified a hd parameter value in the request, verify that the ID token has a hd claim that matches an accepted domain associated with a Google Cloud organization.
-	if gp.Hd != "" {
+	if p.Hd != "" {
 		hd, ok3 := info.Payload["hd"]
-		if !ok3 || hd != gp.Hd {
-			return fmt.Errorf(stderr.ValdateTokenHd, hd, gp.Hd)
+		if !ok3 || hd != p.Hd {
+			return fmt.Errorf(stderr.ValdateTokenHd, hd, p.Hd)
 		}
 	}
 
@@ -416,13 +420,13 @@ func (gp *Provider) ValidateToken(token *Token) error {
 
 // VerifyState Verify the state returned from the request matches the
 // original value sent.
-func (gp *Provider) VerifyState(returnedSate string) error {
+func (p *Provider) VerifyState(returnedSate string) error {
 	// Validate the state from the session was restored.
-	if len(returnedSate) < 30 || len(gp.State) < 30 { // Log error and redirect to login page.
+	if len(returnedSate) < 30 || len(p.State) < 30 { // Log error and redirect to login page.
 		return &ErrInvalidState{stderr.InvalidState, "/?m=invalid-state", http.StatusSeeOther}
 	}
 
-	sState, e1 := url.QueryUnescape(gp.State)
+	sState, e1 := url.QueryUnescape(p.State)
 	if e1 != nil {
 		Log.Errf(stderr.QueryUnescape, e1.Error())
 	}
@@ -441,7 +445,7 @@ func (gp *Provider) VerifyState(returnedSate string) error {
 // sendWithRetry Make an HTTP request, retrying up to so many times.
 // NOTE: Response will only be nil when something goes wrong. Otherwise,
 // it will be a valid http.Response.
-func (gp *Provider) sendWithRetry(method, url string, data []byte, headers http.Header, code, retries int) (*http.Response, error) {
+func (p *Provider) sendWithRetry(method, url string, data []byte, headers http.Header, code, retries int) (*http.Response, error) {
 	body := bytes.NewBuffer(data)
 
 	req, e1 := http.NewRequest(method, url, body)
@@ -454,7 +458,7 @@ func (gp *Provider) sendWithRetry(method, url string, data []byte, headers http.
 	var e2 error
 
 	for attempt := 1; attempt <= retries; attempt++ {
-		res, e2 = gp.client.Do(req)
+		res, e2 = p.client.Do(req)
 		if e2 != nil {
 			return nil, fmt.Errorf(stderr.LoginRequest, e2.Error())
 		}
