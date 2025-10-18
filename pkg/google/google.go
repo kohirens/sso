@@ -22,11 +22,17 @@ const (
 	keyCertificate  = "google_certificate.json"
 )
 
-var Log = &logger.Standard{}
-
 type HttpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
+
+type Session interface {
+	Get(key string) []byte
+	Remove(key string) error
+	Set(key string, value []byte)
+}
+
+var Log = &logger.Standard{}
 
 // NewAuth Provider Authentication object using credentials found in the
 // environment.
