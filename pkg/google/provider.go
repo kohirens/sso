@@ -44,7 +44,7 @@ func (gp *Provider) Authenticated() bool {
 	return gp.Token != nil && !gp.Token.Expired() // Time has expired
 }
 
-// AuthLink Generate an link for the user to authenticate with the provider.
+// AuthLink Generate a link to authenticate with the provider.
 func (gp *Provider) AuthLink(loginHint string) (string, error) {
 	epAuthentication := os.Getenv(envOIDCAuthURI)
 	if epAuthentication == "" {
@@ -77,7 +77,7 @@ func (gp *Provider) AuthLink(loginHint string) (string, error) {
 	return uri, nil
 }
 
-// Certificate JWK Grab the certs for validating ID tokens from Google.
+// Certificate JWK Download the certificates for validating ID tokens from Google.
 func (gp *Provider) Certificate() error {
 	uri := gp.DiscoveryDoc.JwksUri
 	if uri == "" {
@@ -125,7 +125,7 @@ func (gp *Provider) ClientID() string {
 	return fmt.Sprintf("%v-google-%v", gp.Name(), sub.(string))
 }
 
-func (gp *Provider) DownloadDiscoveryDoc() error {
+func (gp *Provider) DiscoveryDocDownload() error {
 	uri := os.Getenv(envDiscoverDocURL)
 	if uri == "" {
 		return fmt.Errorf(stderr.MissEnvVar, envDiscoverDocURL)
@@ -152,7 +152,7 @@ func (gp *Provider) DownloadDiscoveryDoc() error {
 	return nil
 }
 
-func (gp *Provider) GoogleDiscoverDoc(dd []byte) error {
+func (gp *Provider) DiscoverDoc(dd []byte) error {
 	if e := json.Unmarshal(dd, gp.DiscoveryDoc); e != nil {
 		return fmt.Errorf(stderr.DecodeJSON, e.Error())
 	}
@@ -205,7 +205,7 @@ func (gp *Provider) LoadDiscoveryDoc() error {
 	}
 
 	{ // Even though e2 is only used before the download label, Go prevents using goto that skips over this declaration, the blocks help a little.
-		e2 := gp.GoogleDiscoverDoc(dd)
+		e2 := gp.DiscoverDoc(dd)
 		if e2 == nil {
 			return nil
 		}
@@ -216,7 +216,7 @@ download:
 
 	Log.Errf(stderr.DiscoveryDocCache)
 	// Download the Google Discover Document
-	if e := gp.DownloadDiscoveryDoc(); e != nil {
+	if e := gp.DiscoveryDocDownload(); e != nil {
 		return e
 	}
 
@@ -228,7 +228,7 @@ download:
 	return nil
 }
 
-func (gp *Provider) Logout() {
+func (gp *Provider) SignOut() {
 	// TODO: Implement
 }
 

@@ -14,6 +14,8 @@ type OIDCProvider interface {
 	ClientEmail() string
 	// ClientID Make an ID unique to the client.
 	ClientID() string
+	// SignOut Sign out of the OIDC provider.
+	SignOut() string
 }
 
 type SessionManager interface {
@@ -26,4 +28,4 @@ const (
 	SessionTokenApple  = "__ap__"
 )
 
-var Log = logger.Standard{}
+var Log = &logger.Standard{}

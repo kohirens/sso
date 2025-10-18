@@ -58,8 +58,9 @@ func NewAuth() (*OAuth2, error) {
 	}, nil
 }
 
-// NewGoogleProvider configure a Google OIDC provider to authenticate a HttpClient.
-func NewGoogleProvider(client HttpClient, store storage.Storage) (*Provider, error) {
+// NewProvider Initialize a Google OIDC provider to authenticate a client
+// requesting access to your application.
+func NewProvider(client HttpClient, store storage.Storage) (*Provider, error) {
 	oauth2, e1 := NewAuth()
 	if e1 != nil {
 		return nil, e1
@@ -70,7 +71,7 @@ func NewGoogleProvider(client HttpClient, store storage.Storage) (*Provider, err
 		return nil, fmt.Errorf(stderr.MissEnvVar, envOIDCProjectID)
 	}
 
-	gp := &Provider{
+	return &Provider{
 		DiscoveryDoc: &DiscoverDoc{},
 		ProjectID:    projectID,
 		OAuth2:       oauth2,
@@ -78,7 +79,5 @@ func NewGoogleProvider(client HttpClient, store storage.Storage) (*Provider, err
 		State:        NewStateWith(oauth2.RedirectURI),
 		client:       client,
 		store:        store,
-	}
-
-	return gp, nil
+	}, nil
 }
