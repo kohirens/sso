@@ -22,6 +22,17 @@ const (
 	keyCertificate  = "google_certificate.json"
 )
 
+type Device struct {
+	ID        string `json:"id"`
+	SessionID string `json:"session_id"`
+}
+
+type LoginInfo struct {
+	RefreshToken interface{}        `json:"refresh_token"`
+	Devices      map[string]*Device `json:"devices"`
+	GoogleID     string             `json:"google_id"`
+}
+
 type HttpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }

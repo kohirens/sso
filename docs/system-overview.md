@@ -8,12 +8,12 @@ When a user logs in with Google, their profile info (name and email) are
 requested. In addition, Google sends back a unique ID for them. This
 information is saved into a JSON document:
 
-Example Login Info:
+Example Google Login Info:
 ```json
 {
   "refresh_token": null,
   "devices": {
-    "<broswer-hash>": {
+    "<browser-hash>": {
       "session_id": "<session-hash>"
     }
   },

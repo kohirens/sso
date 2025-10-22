@@ -2,7 +2,6 @@ package google
 
 import (
 	"bytes"
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	jwt "github.com/kohirens/json-web-token"
@@ -106,24 +105,31 @@ func (p *Provider) Certificate() error {
 	return nil
 }
 
-// ClientID is unique to a Google Account even if the user changes their email
-// address.
-// Warning: When implementing your account management system, you shouldn't
-// use the email field in the ID token as a unique identifier for a user.
-// Always use the `sub` field as it is unique to a Google Account even if the
-// user changes their email address.
-// For details see:
-// https://developers.google.com/identity/openid-connect/openid-connect#obtainuserinfo
+// ClientID An ID unique to a Google Account even if the user changes their
+// email address.
+//
+//	Google ID Tokens contain `sub` always. An identifier for the user, unique
+//	among all Google Accounts and never reused. A Google Account can have
+//	multiple email addresses at different points in time, but the sub value
+//	is never changed. Use sub within your application as the unique-identifier
+//	key for the user. Maximum length of 255 case-sensitive ASCII characters.
+//	For details see:
+//	https://developers.google.com/identity/openid-connect/openid-connect#obtainuserinfo
 func (p *Provider) ClientID() string {
+	// ClientID will be the users Google ID stores in a folder
+	// /login/<google-user-id>. The data has to be encrypted since it will
+	// contain PII. For compliance, it will be encrypted with the apps GPG key.
 	idToken, e1 := p.Token.IDTokenInfo()
 	if e1 != nil {
 		panic(e1)
 	}
+
 	sub, ok := idToken.Payload["sub"]
 	if !ok {
 		panic(fmt.Sprintf(stderr.IDTokenNoSub))
 	}
-	return fmt.Sprintf("%v-google-%v", p.Name(), sub.(string))
+
+	return sub.(string)
 }
 
 func (p *Provider) DiscoveryDocDownload() error {
@@ -238,21 +244,23 @@ func (p *Provider) SignOut() error {
 
 // ClientEmail Return the logged in clients email address.
 func (p *Provider) ClientEmail() string {
-	// TODO: Implement
-	return ""
+	idToken, e1 := p.Token.IDTokenInfo()
+	if e1 != nil {
+		panic(e1)
+	}
+
+	sub, ok := idToken.Payload["email"]
+	if !ok {
+		panic(fmt.Sprintf(stderr.IDTokenNoSub))
+	}
+
+	return sub.(string)
 }
 
 // ExchangeCodeForToken An authorization code obtained after the HttpClient
 // approves the permission request, which is then sent to Google for an ID
 // token obtained from Google.
 func (p *Provider) ExchangeCodeForToken(state, code string) error {
-
-	// TODO: Validate input state and code, before using
-	//if !validation.MaxLen(code, maxLen) {
-	//	Log.Errf(stderr.MaxLen, fieldCode, maxLen)
-	//	w.WriteHeader(http.StatusBadRequest)
-	//}
-
 	if e := p.VerifyState(state); e != nil {
 		return e
 	}
@@ -277,7 +285,7 @@ func (p *Provider) ExchangeCodeForToken(state, code string) error {
 
 	res, e1 := p.sendWithRetry("POST", uri, []byte(reqBody), headers, http.StatusOK, 3)
 	if e1 != nil {
-		return fmt.Errorf(e1.Error())
+		return e1
 	}
 
 	token, e3 := loadToken(res.Body)
@@ -341,10 +349,17 @@ func (p *Provider) RefreshToken() error {
 	return nil
 }
 
-// StorageID An ID safe to use as a key or filename when storing this data.
-func (p *Provider) StorageID() string {
-	//TODO ClientID also has -google- in it.
-	return fmt.Sprintf("%v-google-%x", p.Name(), md5.Sum([]byte(p.ClientID())))
+// SaveLoginInfo Save info for retrieval without hitting Google servers.
+func (p *Provider) SaveLoginInfo(prefix string) error {
+	filename := prefix + "/" + p.ClientID()
+	li := &LoginInfo{}
+
+	liData, e1 := json.Marshal(li)
+	if e1 != nil {
+		Log.Errf(stderr.EncodeJSON)
+	}
+
+	return p.store.Save(filename, liData)
 }
 
 // ValidateToken Validate an ID token came from Google.
@@ -411,7 +426,7 @@ func (p *Provider) ValidateToken(token *Token) error {
 	if p.Hd != "" {
 		hd, ok3 := info.Payload["hd"]
 		if !ok3 || hd != p.Hd {
-			return fmt.Errorf(stderr.ValdateTokenHd, hd, p.Hd)
+			return fmt.Errorf(stderr.ValidateTokenHd, hd, p.Hd)
 		}
 	}
 
@@ -421,7 +436,7 @@ func (p *Provider) ValidateToken(token *Token) error {
 // VerifyState Verify the state returned from the request matches the
 // original value sent.
 func (p *Provider) VerifyState(returnedSate string) error {
-	// Validate the state from the session was restored.
+	// Check either state is not empty
 	if len(returnedSate) < 30 || len(p.State) < 30 { // Log error and redirect to login page.
 		return &ErrInvalidState{stderr.InvalidState, "/?m=invalid-state", http.StatusSeeOther}
 	}

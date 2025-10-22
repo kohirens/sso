@@ -28,7 +28,7 @@ func TestClientID(t *testing.T) {
 				State:     "",
 				Code:      "",
 			},
-			want: "test-app-google-10769150350006150715113082367",
+			want: "10769150350006150715113082367",
 		},
 	}
 	for _, c := range cases {
