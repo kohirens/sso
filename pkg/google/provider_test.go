@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	tmpDir = "tmp"
+	fixtureDir = "testdata"
+	tmpDir     = "tmp"
 )
 
 func TestMain(m *testing.M) {
@@ -136,6 +137,73 @@ func TestProvider_SaveLoginInfo(t *testing.T) {
 
 			if tt.makePrefix && !fsio.Exist(tt.expectedFile) {
 				t.Errorf("SaveLoginInfo() did not save login info")
+				return
+			}
+		})
+	}
+}
+
+func TestProvider_LoadLoginInfo(t *testing.T) {
+	fixedStore, _ := storage.NewLocalStorage(fixtureDir)
+
+	tests := []struct {
+		name         string
+		prefix       string
+		Token        *Token
+		Store        storage.Storage
+		expectedFile string
+		wantID       string
+		wantErr      bool
+	}{
+		{
+			"bad",
+			"logins",
+			&Token{
+				info: &jwt.Info{
+					Payload: jwt.ClaimSet{
+						"sub": "account-not-found",
+					},
+				},
+			},
+			fixedStore,
+			"",
+			"",
+			true,
+		},
+		{
+			"good",
+			"logins",
+			&Token{
+				info: &jwt.Info{
+					Payload: jwt.ClaimSet{
+						"sub": "load-login-info-good",
+					},
+				},
+			},
+			fixedStore,
+			tmpDir + "/logins/save-login-info-good",
+			"1234",
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup
+			p := &Provider{
+				Token: tt.Token,
+				store: tt.Store,
+			}
+
+			// Run and assert.
+			p.Prefix = tt.prefix
+			got, err := p.LoadLoginInfo()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("LoadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if got != nil && got.GoogleID != tt.wantID {
+				t.Errorf("LoadLoginInfo() incorrect info")
 				return
 			}
 		})

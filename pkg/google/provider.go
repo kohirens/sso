@@ -356,10 +356,26 @@ func (p *Provider) SaveLoginInfo() error {
 
 	liData, e1 := json.Marshal(li)
 	if e1 != nil {
-		Log.Errf(stderr.EncodeJSON)
+		return fmt.Errorf(stderr.EncodeJSON, e1.Error())
 	}
 
 	return p.store.Save(p.location(), liData)
+}
+
+// LoadLoginInfo retrieve info without hitting Google servers.
+func (p *Provider) LoadLoginInfo() (*LoginInfo, error) {
+	liData, e1 := p.store.Load(p.location())
+	if e1 != nil {
+		return nil, e1
+	}
+
+	li := &LoginInfo{}
+
+	if e := json.Unmarshal(liData, li); e != nil {
+		return nil, fmt.Errorf(stderr.EncodeJSON, e)
+	}
+
+	return li, nil
 }
 
 // ValidateToken Validate an ID token came from Google.
@@ -460,9 +476,9 @@ func (p *Provider) VerifyState(returnedSate string) error {
 // location Return the storage location.
 func (p *Provider) location() string {
 	if p.Prefix != "" {
-		return p.Prefix + "/" + p.ClientID()
+		return p.Prefix + "/" + p.ClientID() + ".json"
 	}
-	return p.ClientID()
+	return p.ClientID() + ".json"
 }
 
 // sendWithRetry Make an HTTP request, retrying up to so many times.
