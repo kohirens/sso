@@ -1,9 +1,5 @@
 package sso
 
-import (
-	"github.com/kohirens/stdlib/logger"
-)
-
 type OIDCProvider interface {
 	// AuthLink Generate a link, when clicked, send the browser to where a user
 	// can consent to authenticate with the provider.
@@ -20,12 +16,11 @@ type OIDCProvider interface {
 
 type SessionManager interface {
 	Get(key string) []byte
-	Remove(string) error
+	Remove(key string) error
+	Set(key string, value []byte)
 }
 
 const (
 	SessionTokenGoogle = "__gp__"
 	SessionTokenApple  = "__ap__"
 )
-
-var Log = &logger.Standard{}

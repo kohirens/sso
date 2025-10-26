@@ -128,7 +128,8 @@ func TestProvider_SaveLoginInfo(t *testing.T) {
 			}
 
 			// Run and assert.
-			if err := p.SaveLoginInfo(tt.prefix); (err != nil) != tt.wantErr {
+			p.Prefix = tt.prefix
+			if err := p.SaveLoginInfo(); (err != nil) != tt.wantErr {
 				t.Errorf("SaveLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}

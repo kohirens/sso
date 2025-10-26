@@ -32,6 +32,7 @@ type Provider struct {
 	// Credentials Clients login username and password.
 	Token   *Token `json:"credentials"`
 	client  HttpClient
+	Prefix  string
 	session Session
 	store   storage.Storage
 }
@@ -350,8 +351,7 @@ func (p *Provider) RefreshToken() error {
 }
 
 // SaveLoginInfo Save info for retrieval without hitting Google servers.
-func (p *Provider) SaveLoginInfo(prefix string) error {
-	filename := prefix + "/" + p.ClientID()
+func (p *Provider) SaveLoginInfo() error {
 	li := &LoginInfo{}
 
 	liData, e1 := json.Marshal(li)
@@ -359,7 +359,7 @@ func (p *Provider) SaveLoginInfo(prefix string) error {
 		Log.Errf(stderr.EncodeJSON)
 	}
 
-	return p.store.Save(filename, liData)
+	return p.store.Save(p.location(), liData)
 }
 
 // ValidateToken Validate an ID token came from Google.
@@ -455,6 +455,14 @@ func (p *Provider) VerifyState(returnedSate string) error {
 	}
 
 	return nil
+}
+
+// location Return the storage location.
+func (p *Provider) location() string {
+	if p.Prefix != "" {
+		return p.Prefix + "/" + p.ClientID()
+	}
+	return p.ClientID()
 }
 
 // sendWithRetry Make an HTTP request, retrying up to so many times.
