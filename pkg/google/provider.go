@@ -37,6 +37,11 @@ type Provider struct {
 	store   storage.Storage
 }
 
+// Application Name of the project made in Google Cloud app.
+func (p *Provider) Application() string {
+	return p.ProjectID
+}
+
 // Authenticated Indicates if the HttpClient has been successfully authenticated by
 // Google.
 func (p *Provider) Authenticated() bool {
@@ -334,7 +339,7 @@ func (p *Provider) LoadLoginInfo() (*LoginInfo, error) {
 
 // Name ID of the OIDC application registered with the provider
 func (p *Provider) Name() string {
-	return p.ProjectID
+	return "google"
 }
 
 // RefreshToken Get a new token from Google authentication servers.

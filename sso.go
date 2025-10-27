@@ -4,8 +4,10 @@ type OIDCProvider interface {
 	// AuthLink Generate a link, when clicked, send the browser to where a user
 	// can consent to authenticate with the provider.
 	AuthLink(loginHint string) (string, error)
-	// Name ID of the OIDC application registered with the provider
+	// Name of the provider.
 	Name() string
+	// Application ID of the OIDC application registered with the provider
+	Application() string
 	// ClientEmail Address of the client that is logged in.
 	ClientEmail() string
 	// ClientID Make an ID unique to the client.
