@@ -5,12 +5,11 @@ go 1.23.2
 require (
 	github.com/google/uuid v1.6.0
 	github.com/kohirens/json-web-token v0.0.0-20251010155233-f326c8352886
-	github.com/kohirens/stdlib v0.0.0-20250322174128-35358831c996
-	github.com/kohirens/www v0.0.0-20251016135623-30232de41661
+	github.com/kohirens/stdlib v0.0.0-20251021130544-e22b450a40f5
+	github.com/kohirens/www v0.0.0-20251026221903-bf0c8038f986
 )
 
 require (
-	github.com/aws/aws-lambda-go v1.47.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.36.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.10 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.29.9 // indirect

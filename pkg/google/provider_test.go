@@ -1,10 +1,13 @@
 package google
 
 import (
+	"bytes"
 	jwt "github.com/kohirens/json-web-token"
 	"github.com/kohirens/stdlib/fsio"
 	"github.com/kohirens/stdlib/test"
 	"github.com/kohirens/www/storage"
+	"io"
+	"net/http"
 	"os"
 	"testing"
 )
@@ -37,36 +40,79 @@ func TestProvider_ExchangeCodeForToken(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		fields  fields
 		state   string
 		code    string
+		envs    map[string]string
+		client  HttpClient
 		wantErr bool
 	}{
 		{
 			"unknown",
-			fields{},
 			"abc",
 			"xyz",
+			nil,
+			nil,
+			true,
+		},
+		{
+			"env_oidc_token_uri_not_set",
+			"abcdefghijklmnopqrstuvwxyz1234",
+			"xyz",
+			nil,
+			nil,
+			true,
+		},
+		{
+			"good_token_uri",
+			"abcdefghijklmnopqrstuvwxyz1234",
+			"xyz",
+			map[string]string{
+				"GOOGLE_OIDC_TOKEN_URI":     "https://test.local/oauth2/v3/token",
+				"GOOGLE_OIDC_CLIENT_ID":     "testid",
+				"GOOGLE_OIDC_CLIENT_SECRET": "1234",
+				"GOOGLE_OIDC_REDIRECT_URIS": "https://test.local/callback",
+			},
+			&test.MockHttpClient{
+				DoHandler: func(r *http.Request) (*http.Response, error) {
+					b, _ := os.ReadFile(fixtureDir + "/test-token-01.json")
+					return &http.Response{
+						Body:       io.NopCloser(bytes.NewReader(b)),
+						StatusCode: 200,
+					}, nil
+				},
+			},
 			true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Provider{
-				Code:         tt.fields.Code,
-				DiscoveryDoc: tt.fields.DiscoveryDoc,
-				Hd:           tt.fields.Hd,
-				JWKs:         tt.fields.JWKs,
-				OAuth2:       tt.fields.OAuth2,
-				ProjectID:    tt.fields.ProjectID,
-				Scopes:       tt.fields.Scopes,
-				State:        tt.fields.State,
-				Token:        tt.fields.Token,
-				client:       tt.fields.client,
-				session:      tt.fields.session,
-				store:        tt.fields.store,
+				//Code:         tt.Code,
+				//DiscoveryDoc: tt.DiscoveryDoc,
+				//Hd:           tt.Hd,
+				//JWKs:         tt.JWKs,
+				//OAuth2:       tt.OAuth2,
+				//ProjectID:    tt.ProjectID,
+				//Scopes:       tt.Scopes,
+				State: tt.state,
+				//Token:        tt.Token,
+				client: tt.client,
+				//session:      tt.session,
+				//store:        tt.store,
 			}
-			if err := p.ExchangeCodeForToken(tt.state, tt.code); (err != nil) != tt.wantErr {
+			if tt.envs != nil {
+				for k, v := range tt.envs {
+					t.Setenv(k, v)
+				}
+			}
+
+			creds, e1 := NewAuth()
+			if e1 == nil {
+				p.OAuth2 = creds
+			}
+			err := p.ExchangeCodeForToken(tt.state, tt.code)
+
+			if (err != nil) != tt.wantErr {
 				t.Errorf("ExchangeCodeForToken() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

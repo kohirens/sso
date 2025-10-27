@@ -18,8 +18,8 @@ const (
 	envOIDCRedirectURIs = "GOOGLE_OIDC_REDIRECT_URIS"
 	envDiscoverDocURL   = "GOOGLE_DISCOVERY_DOC_URL"
 
-	keyDiscoveryDoc = "google_discovery_document.json"
-	keyCertificate  = "google_certificate.json"
+	keyDiscoveryDoc = "google_discovery_document"
+	keyCertificate  = "google_certificate"
 )
 
 type Device struct {
@@ -77,7 +77,7 @@ func NewAuth() (*OAuth2, error) {
 
 // NewProvider Initialize a Google OIDC provider to authenticate a client
 // requesting access to your application.
-func NewProvider(client HttpClient, store storage.Storage, session Session) (*Provider, error) {
+func NewProvider(client HttpClient, store storage.Storage, session Session, prefix string) (*Provider, error) {
 	oauth2, e1 := NewAuth()
 	if e1 != nil {
 		return nil, e1
@@ -88,7 +88,7 @@ func NewProvider(client HttpClient, store storage.Storage, session Session) (*Pr
 		return nil, fmt.Errorf(stderr.MissEnvVar, envOIDCProjectID)
 	}
 
-	return &Provider{
+	gp := &Provider{
 		DiscoveryDoc: &DiscoverDoc{},
 		ProjectID:    projectID,
 		OAuth2:       oauth2,
@@ -97,5 +97,16 @@ func NewProvider(client HttpClient, store storage.Storage, session Session) (*Pr
 		client:       client,
 		session:      session,
 		store:        store,
-	}, nil
+		Prefix:       prefix,
+	}
+
+	if e := gp.LoadDiscoveryDoc(); e != nil {
+		return gp, e
+	}
+
+	if e := gp.LoadCertificate(); e != nil {
+		return gp, e
+	}
+
+	return gp, nil
 }

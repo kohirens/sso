@@ -174,7 +174,8 @@ func (p *Provider) DiscoverDoc(dd []byte) error {
 // then download from the internet if that fails.
 func (p *Provider) LoadCertificate() error {
 	var e2 error
-	dd, e1 := p.store.Load(keyCertificate)
+	filename := p.location(keyCertificate)
+	dd, e1 := p.store.Load(filename)
 	if e1 != nil {
 		Log.Warnf(e1.Error())
 		goto download
@@ -195,7 +196,7 @@ download:
 	}
 
 	// Save to the storage device.
-	if e := p.store.Save(keyCertificate, p.JWKs.rawBytes); e != nil {
+	if e := p.store.Save(filename, p.JWKs.rawBytes); e != nil {
 		Log.Warnf(e.Error())
 	}
 
@@ -206,7 +207,8 @@ download:
 // LoadDiscoveryDoc Load the Google Discovery document, try from cache first,
 // then download from the internet if that fails.
 func (p *Provider) LoadDiscoveryDoc() error {
-	dd, e1 := p.store.Load(keyDiscoveryDoc)
+	filename := p.location(keyDiscoveryDoc)
+	dd, e1 := p.store.Load(filename)
 	if e1 != nil {
 		Log.Warnf(e1.Error())
 		goto download
@@ -228,7 +230,7 @@ download:
 		return e
 	}
 
-	if e := p.store.Save(keyDiscoveryDoc, p.DiscoveryDoc.rawBytes); e != nil {
+	if e := p.store.Save(filename, p.DiscoveryDoc.rawBytes); e != nil {
 		Log.Warnf(e.Error())
 	}
 
@@ -272,6 +274,10 @@ func (p *Provider) ExchangeCodeForToken(state, code string) error {
 	}
 
 	Log.Dbugf(stdout.GoogleTokenUri, uri)
+
+	if p.OAuth2 == nil {
+		return fmt.Errorf(stderr.OAuth2Nil)
+	}
 
 	reqBody := fmt.Sprintf(
 		"code=%v&client_id=%v&client_secret=%v&redirect_uri=%v&grant_type=authorization_code",
@@ -359,12 +365,12 @@ func (p *Provider) SaveLoginInfo() error {
 		return fmt.Errorf(stderr.EncodeJSON, e1.Error())
 	}
 
-	return p.store.Save(p.location(), liData)
+	return p.store.Save(p.loginFilename(), liData)
 }
 
 // LoadLoginInfo retrieve info without hitting Google servers.
 func (p *Provider) LoadLoginInfo() (*LoginInfo, error) {
-	liData, e1 := p.store.Load(p.location())
+	liData, e1 := p.store.Load(p.loginFilename())
 	if e1 != nil {
 		return nil, e1
 	}
@@ -474,11 +480,16 @@ func (p *Provider) VerifyState(returnedSate string) error {
 }
 
 // location Return the storage location.
-func (p *Provider) location() string {
+func (p *Provider) location(filename string) string {
 	if p.Prefix != "" {
-		return p.Prefix + "/" + p.ClientID() + ".json"
+		return p.Prefix + "/" + filename + ".json"
 	}
-	return p.ClientID() + ".json"
+	return filename + ".json"
+}
+
+// loginFile where to look for the file containing login information.
+func (p *Provider) loginFilename() string {
+	return p.location("/logins/" + p.ClientID())
 }
 
 // sendWithRetry Make an HTTP request, retrying up to so many times.
