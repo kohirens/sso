@@ -252,12 +252,12 @@ func (p *Provider) ClientEmail() string {
 		panic(e1)
 	}
 
-	sub, ok := idToken.Payload["email"]
+	email, ok := idToken.Payload["email"]
 	if !ok {
-		panic(fmt.Sprintf(stderr.IDTokenNoSub))
+		panic(fmt.Sprintf(stderr.IDTokenNoEmail))
 	}
 
-	return sub.(string)
+	return email.(string)
 }
 
 // ExchangeCodeForToken An authorization code obtained after the HttpClient
@@ -373,8 +373,19 @@ func (p *Provider) RefreshToken() error {
 }
 
 // SaveLoginInfo Save info for retrieval without hitting Google servers.
-func (p *Provider) SaveLoginInfo() error {
-	li := &LoginInfo{}
+func (p *Provider) SaveLoginInfo(deviceId, sessionID string) error {
+	li := &LoginInfo{
+		RefreshToken: p.Token.RefreshToken,
+		Devices:      make(map[string]*Device),
+		GoogleID:     p.ClientID(),
+		Email:        p.ClientEmail(),
+	}
+
+	// Add device.
+	li.Devices[deviceId] = &Device{
+		ID:        deviceId,
+		SessionID: sessionID,
+	}
 
 	liData, e1 := json.Marshal(li)
 	if e1 != nil {
@@ -489,7 +500,7 @@ func (p *Provider) location(filename string) string {
 
 // loginFile where to look for the file containing login information.
 func (p *Provider) loginFilename() string {
-	return p.location("/logins/" + p.ClientID())
+	return p.location("logins/" + p.ClientID())
 }
 
 // sendWithRetry Make an HTTP request, retrying up to so many times.

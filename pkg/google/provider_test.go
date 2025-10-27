@@ -124,7 +124,6 @@ func TestProvider_SaveLoginInfo(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		prefix       string
 		makePrefix   bool
 		Token        *Token
 		Store        storage.Storage
@@ -133,12 +132,12 @@ func TestProvider_SaveLoginInfo(t *testing.T) {
 	}{
 		{
 			"save_location_does_not_exist",
-			"logins",
 			false,
 			&Token{
 				info: &jwt.Info{
 					Payload: jwt.ClaimSet{
-						"sub": "should-not-save",
+						"sub":   "should-not-save",
+						"email": "test@example.com",
 					},
 				},
 			},
@@ -148,17 +147,17 @@ func TestProvider_SaveLoginInfo(t *testing.T) {
 		},
 		{
 			"good",
-			"logins",
 			true,
 			&Token{
 				info: &jwt.Info{
 					Payload: jwt.ClaimSet{
-						"sub": "save-login-info-good",
+						"sub":   "save-login-info-good",
+						"email": "test@example.com",
 					},
 				},
 			},
 			fixedStore,
-			tmpDir + "/logins/save-login-info-good",
+			tmpDir + "/logins/save-login-info-good.json",
 			false,
 		},
 	}
@@ -171,12 +170,11 @@ func TestProvider_SaveLoginInfo(t *testing.T) {
 			}
 
 			if tt.makePrefix {
-				_ = os.MkdirAll(tmpDir+"/"+tt.prefix, 0777)
+				_ = os.MkdirAll(tmpDir+"/logins", 0777)
 			}
 
 			// Run and assert.
-			p.Prefix = tt.prefix
-			if err := p.SaveLoginInfo(); (err != nil) != tt.wantErr {
+			if err := p.SaveLoginInfo("1234", "4321"); (err != nil) != tt.wantErr {
 				t.Errorf("SaveLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
@@ -194,7 +192,6 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		prefix       string
 		Token        *Token
 		Store        storage.Storage
 		expectedFile string
@@ -203,7 +200,6 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 	}{
 		{
 			"bad",
-			"logins",
 			&Token{
 				info: &jwt.Info{
 					Payload: jwt.ClaimSet{
@@ -218,7 +214,6 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 		},
 		{
 			"good",
-			"logins",
 			&Token{
 				info: &jwt.Info{
 					Payload: jwt.ClaimSet{
@@ -227,7 +222,7 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 				},
 			},
 			fixedStore,
-			tmpDir + "/logins/save-login-info-good",
+			fixtureDir + "/logins/load-login-info-good.json",
 			"1234",
 			false,
 		},
@@ -241,7 +236,6 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 			}
 
 			// Run and assert.
-			p.Prefix = tt.prefix
 			got, err := p.LoadLoginInfo()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LoadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)

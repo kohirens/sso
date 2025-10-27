@@ -31,6 +31,7 @@ type LoginInfo struct {
 	RefreshToken interface{}        `json:"refresh_token"`
 	Devices      map[string]*Device `json:"devices"`
 	GoogleID     string             `json:"google_id"`
+	Email        string
 }
 
 type HttpClient interface {
