@@ -316,6 +316,22 @@ func (p *Provider) HasTokenExpired(auth2 *OAuth2) bool {
 	return true
 }
 
+// LoadLoginInfo retrieve info without hitting Google servers.
+func (p *Provider) LoadLoginInfo() (*LoginInfo, error) {
+	liData, e1 := p.store.Load(p.loginFilename())
+	if e1 != nil {
+		return nil, e1
+	}
+
+	li := &LoginInfo{}
+
+	if e := json.Unmarshal(liData, li); e != nil {
+		return nil, fmt.Errorf(stderr.EncodeJSON, e)
+	}
+
+	return li, nil
+}
+
 // Name ID of the OIDC application registered with the provider
 func (p *Provider) Name() string {
 	return p.ProjectID
@@ -366,22 +382,6 @@ func (p *Provider) SaveLoginInfo() error {
 	}
 
 	return p.store.Save(p.loginFilename(), liData)
-}
-
-// LoadLoginInfo retrieve info without hitting Google servers.
-func (p *Provider) LoadLoginInfo() (*LoginInfo, error) {
-	liData, e1 := p.store.Load(p.loginFilename())
-	if e1 != nil {
-		return nil, e1
-	}
-
-	li := &LoginInfo{}
-
-	if e := json.Unmarshal(liData, li); e != nil {
-		return nil, fmt.Errorf(stderr.EncodeJSON, e)
-	}
-
-	return li, nil
 }
 
 // ValidateToken Validate an ID token came from Google.
