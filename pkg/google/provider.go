@@ -267,6 +267,11 @@ func (p *Provider) ClientEmail() string {
 	return email.(string)
 }
 
+// Device Get the device the user logged in with.
+func (p *Provider) Device() *sso.Device {
+	return p.loginInfo.Devices[p.loginInfo.CurrentDeviceID]
+}
+
 // ExchangeCodeForToken An authorization code obtained after the HttpClient
 // approves the permission request, which is then sent to Google for an ID
 // token obtained from Google.
