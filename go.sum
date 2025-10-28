@@ -42,3 +42,5 @@ github.com/kohirens/stdlib v0.0.0-20251021130544-e22b450a40f5 h1:99Uq/BDr63A0uzi
 github.com/kohirens/stdlib v0.0.0-20251021130544-e22b450a40f5/go.mod h1:tyePzzvEyJdHREgJk2SUQkqbdXtoHKFD7Lyl+7r9qFQ=
 github.com/kohirens/www v0.0.0-20251026221903-bf0c8038f986 h1:6IgrBGpBb0S5Tcm19223Sp6zJqHzirmDDmXS7G78u0E=
 github.com/kohirens/www v0.0.0-20251026221903-bf0c8038f986/go.mod h1:GGKanp6EUOWkzyJpoXu5FCPA31U3qTWFiq/wuyaSCAc=
+github.com/mileusna/useragent v1.3.5 h1:SJM5NzBmh/hO+4LGeATKpaEX9+b4vcGg2qXGLiNGDws=
+github.com/mileusna/useragent v1.3.5/go.mod h1:3d8TOmwL/5I8pJjyVDteHtgDGcefrFUX4ccGOMKNYYc=

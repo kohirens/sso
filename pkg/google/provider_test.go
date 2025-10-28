@@ -3,6 +3,7 @@ package google
 import (
 	"bytes"
 	jwt "github.com/kohirens/json-web-token"
+	"github.com/kohirens/sso"
 	"github.com/kohirens/stdlib/fsio"
 	"github.com/kohirens/stdlib/test"
 	"github.com/kohirens/www/storage"
@@ -167,6 +168,11 @@ func TestProvider_SaveLoginInfo(t *testing.T) {
 			p := &Provider{
 				Token: tt.Token,
 				store: tt.Store,
+				loginInfo: &sso.LoginInfo{
+					CurrentDeviceID: "1234",
+					GoogleID:        "4321",
+					Devices:         make(map[string]*sso.Device),
+				},
 			}
 
 			if tt.makePrefix {
@@ -174,7 +180,7 @@ func TestProvider_SaveLoginInfo(t *testing.T) {
 			}
 
 			// Run and assert.
-			if err := p.SaveLoginInfo("1234", "4321"); (err != nil) != tt.wantErr {
+			if err := p.SaveLoginInfo(); (err != nil) != tt.wantErr {
 				t.Errorf("SaveLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
@@ -236,7 +242,7 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 			}
 
 			// Run and assert.
-			got, err := p.LoadLoginInfo()
+			got, err := p.LoadLoginInfo("1234", "1234abc")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LoadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return

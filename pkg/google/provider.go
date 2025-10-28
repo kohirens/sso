@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	jwt "github.com/kohirens/json-web-token"
+	"github.com/kohirens/sso"
 	"github.com/kohirens/www/storage"
 	"io"
 	"net/http"
@@ -30,11 +31,12 @@ type Provider struct {
 	Scopes    []string `json:"scopes"`
 	State     string   `json:"state"`
 	// Credentials Clients login username and password.
-	Token   *Token `json:"credentials"`
-	client  HttpClient
-	Prefix  string
-	session Session
-	store   storage.Storage
+	Token     *Token `json:"credentials"`
+	client    HttpClient
+	Prefix    string
+	session   Session
+	store     storage.Storage
+	loginInfo *sso.LoginInfo
 }
 
 // Application Name of the project made in Google Cloud app.
@@ -322,19 +324,42 @@ func (p *Provider) HasTokenExpired(auth2 *OAuth2) bool {
 }
 
 // LoadLoginInfo retrieve info without hitting Google servers.
-func (p *Provider) LoadLoginInfo() (*LoginInfo, error) {
+func (p *Provider) LoadLoginInfo(sessionID, userAgent string) (*sso.LoginInfo, error) {
+	if p.loginInfo != nil {
+		return p.loginInfo, nil
+	}
+
+	var li *sso.LoginInfo
+
+	// Load the login info from storage.
 	liData, e1 := p.store.Load(p.loginFilename())
-	if e1 != nil {
-		return nil, e1
+	if e1 != nil { // When you cannot load it, then just make it.
+		Log.Warnf(e1.Error())
+		li = &sso.LoginInfo{
+			Devices: make(map[string]*sso.Device),
+		}
+	} else {
+		li = &sso.LoginInfo{}
+		if e := json.Unmarshal(liData, li); e != nil {
+			return nil, fmt.Errorf(stderr.EncodeJSON, e)
+		}
 	}
 
-	li := &LoginInfo{}
-
-	if e := json.Unmarshal(liData, li); e != nil {
-		return nil, fmt.Errorf(stderr.EncodeJSON, e)
+	deviceId := sso.DeviceId([]byte(userAgent))
+	if _, found := li.Devices[deviceId]; found { // Lookup a device.
+		li.CurrentDeviceID = deviceId
+	} else { // Add device.
+		device, e2 := sso.NewDevice([]byte(userAgent), sessionID, p.Name())
+		if e2 != nil {
+			return nil, e2
+		}
+		li.Devices[device.ID] = device
+		li.CurrentDeviceID = device.ID
 	}
 
-	return li, nil
+	p.loginInfo = li
+
+	return p.loginInfo, nil
 }
 
 // Name ID of the OIDC application registered with the provider
@@ -378,21 +403,8 @@ func (p *Provider) RefreshToken() error {
 }
 
 // SaveLoginInfo Save info for retrieval without hitting Google servers.
-func (p *Provider) SaveLoginInfo(deviceId, sessionID string) error {
-	li := &LoginInfo{
-		RefreshToken: p.Token.RefreshToken,
-		Devices:      make(map[string]*Device),
-		GoogleID:     p.ClientID(),
-		Email:        p.ClientEmail(),
-	}
-
-	// Add device.
-	li.Devices[deviceId] = &Device{
-		ID:        deviceId,
-		SessionID: sessionID,
-	}
-
-	liData, e1 := json.Marshal(li)
+func (p *Provider) SaveLoginInfo() error {
+	liData, e1 := json.Marshal(p.loginInfo)
 	if e1 != nil {
 		return fmt.Errorf(stderr.EncodeJSON, e1.Error())
 	}

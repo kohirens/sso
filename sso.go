@@ -1,5 +1,13 @@
 package sso
 
+type LoginInfo struct {
+	CurrentDeviceID string
+	Devices         map[string]*Device `json:"devices"`
+	Email           string
+	GoogleID        string      `json:"google_id"`
+	RefreshToken    interface{} `json:"refresh_token"`
+}
+
 type OIDCProvider interface {
 	// AuthLink Generate a link, when clicked, send the browser to where a user
 	// can consent to authenticate with the provider.

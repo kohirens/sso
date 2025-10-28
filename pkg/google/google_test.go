@@ -1,6 +1,7 @@
 package google
 
 import (
+	jwt "github.com/kohirens/json-web-token"
 	"testing"
 	"time"
 )
