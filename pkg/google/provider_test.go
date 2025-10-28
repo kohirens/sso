@@ -203,6 +203,7 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 		Token        *Token
 		Store        storage.Storage
 		expectedFile string
+		deviceID     string
 		wantID       string
 		wantErr      bool
 	}{
@@ -216,6 +217,7 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 				},
 			},
 			fixedStore,
+			"",
 			"",
 			"",
 			true,
@@ -232,7 +234,8 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 			},
 			fixedStore,
 			tmpDir + "/logins/load-login-info-good.json",
-			"1234",
+			"84779adf-91d2-50a4-bffe-ddd2f43b6c53",
+			"load-login-info-good",
 			false,
 		},
 		{
@@ -247,6 +250,7 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 			fixedStore,
 			"",
 			"",
+			"",
 			true,
 		},
 	}
@@ -259,7 +263,7 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 			}
 
 			// Run and assert.
-			err := p.UpdateLoginInfo("1234", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36")
+			err := p.UpdateLoginInfo(tt.deviceID, "4321", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LoadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return

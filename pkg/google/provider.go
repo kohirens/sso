@@ -7,6 +7,7 @@ import (
 	jwt "github.com/kohirens/json-web-token"
 	"github.com/kohirens/sso"
 	"github.com/kohirens/www/storage"
+	"github.com/mileusna/useragent"
 	"io"
 	"net/http"
 	"net/url"
@@ -405,34 +406,40 @@ func (p *Provider) SaveLoginInfo() error {
 }
 
 // UpdateLoginInfo Updates the login information.
-func (p *Provider) UpdateLoginInfo(sessionID, userAgent string) error {
+func (p *Provider) UpdateLoginInfo(deviceID, sessionID, userAgent string) error {
 	if p.Token == nil {
 		panic(stderr.NoToken)
 	}
 
 	// Load login info
-
 	if e1 := p.LoadLoginInfo(); e1 != nil {
 		return e1
 	}
+
 	// Update login info.
 	p.loginInfo.GoogleID = p.ClientID()
 	p.loginInfo.RefreshToken = p.RefreshToken()
 	p.loginInfo.Email = p.ClientEmail()
 
-	// TODO: generate a device and store it in the ec cookie along with the account id.
-	deviceId := sso.DeviceId([]byte(userAgent))
-	if device, found := p.loginInfo.Devices[deviceId]; found { // Lookup a device.
-		p.loginInfo.CurrentDeviceID = deviceId
-		if device.SessionID != sessionID {
-
+	// Lookup the device, otherwise treat it as a new device.
+	device, found := p.loginInfo.Devices[deviceID]
+	if found {
+		// Compare User Agent to validate it is the same device.
+		dua := device.UserAgent
+		ua := useragent.Parse(userAgent)
+		if dua.Device != ua.Device || dua.OSVersion != ua.OSVersion || dua.Name != ua.Name {
+			// this is a new device
+			device = nil
 		}
-	} else { // Add the device.
-		d := sso.NewDevice(userAgent, sessionID, p.Name())
-		p.loginInfo.Devices[d.ID] = device
-		p.loginInfo.CurrentDeviceID = d.ID
-		d.SessionID = sessionID
 	}
+
+	if device == nil {
+		device = sso.NewDevice(userAgent, sessionID, p.Name())
+		p.loginInfo.Devices[device.ID] = device
+	}
+
+	p.loginInfo.CurrentDeviceID = device.ID
+	device.SessionID = sessionID
 
 	// Store that token away for safe keeping
 	if e := p.SaveLoginInfo(); e != nil {

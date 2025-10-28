@@ -1,5 +1,16 @@
 {
   "refresh_token":  "",
-  "devices": {},
+  "devices": {
+    "84779adf-91d2-50a4-bffe-ddd2f43b6c53": {
+      "session_id": "4321",
+      "oidc_provider": "google",
+      "user_agent": {
+        "Name": "Chrome",
+        "OS": "Windows",
+        "OSVersion": "10.0",
+        "Desktop": true
+      }
+    }
+  },
   "google_id": "1234"
 }
