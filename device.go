@@ -1,8 +1,6 @@
 package sso
 
 import (
-	"encoding/json"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/mileusna/useragent"
 )
@@ -19,16 +17,11 @@ func DeviceId(userAgent []byte) string {
 	return id.String()
 }
 
-func NewDevice(userAgent []byte, sessionID, oidcProvider string) (*Device, error) {
-	var ua useragent.UserAgent
-	if e := json.Unmarshal(userAgent, &ua); e != nil {
-		return nil, fmt.Errorf(stderr.DecodeJSON, e.Error())
-	}
-
+func NewDevice(userAgent string, sessionID, oidcProvider string) *Device {
 	return &Device{
-		ID:           DeviceId(userAgent),
+		ID:           DeviceId([]byte(userAgent)),
 		OIDCProvider: oidcProvider,
 		SessionID:    sessionID,
-		UserAgent:    ua,
-	}, nil
+		UserAgent:    useragent.Parse(userAgent),
+	}
 }

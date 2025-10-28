@@ -349,10 +349,7 @@ func (p *Provider) LoadLoginInfo(sessionID, userAgent string) (*sso.LoginInfo, e
 	if _, found := li.Devices[deviceId]; found { // Lookup a device.
 		li.CurrentDeviceID = deviceId
 	} else { // Add device.
-		device, e2 := sso.NewDevice([]byte(userAgent), sessionID, p.Name())
-		if e2 != nil {
-			return nil, e2
-		}
+		device := sso.NewDevice(userAgent, sessionID, p.Name())
 		li.Devices[device.ID] = device
 		li.CurrentDeviceID = device.ID
 	}

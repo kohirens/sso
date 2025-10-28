@@ -205,7 +205,7 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 		wantErr      bool
 	}{
 		{
-			"bad",
+			"account_not_found",
 			&Token{
 				info: &jwt.Info{
 					Payload: jwt.ClaimSet{
@@ -216,7 +216,7 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 			fixedStore,
 			"",
 			"",
-			true,
+			false,
 		},
 		{
 			"good",
@@ -232,6 +232,20 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 			"1234",
 			false,
 		},
+		{
+			"malformed-json",
+			&Token{
+				info: &jwt.Info{
+					Payload: jwt.ClaimSet{
+						"sub": "bad-login-info-good",
+					},
+				},
+			},
+			fixedStore,
+			"",
+			"",
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -242,7 +256,7 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 			}
 
 			// Run and assert.
-			got, err := p.LoadLoginInfo("1234", "1234abc")
+			got, err := p.LoadLoginInfo("1234", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LoadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
