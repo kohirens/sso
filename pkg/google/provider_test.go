@@ -194,7 +194,9 @@ func TestProvider_SaveLoginInfo(t *testing.T) {
 }
 
 func TestProvider_LoadLoginInfo(t *testing.T) {
-	fixedStore, _ := storage.NewLocalStorage(fixtureDir)
+	ps := string(os.PathSeparator)
+	_ = fsio.CopyDirToDir(fixtureDir+ps+"logins", tmpDir+ps+"logins", ps, os.FileMode(0777))
+	fixedStore, _ := storage.NewLocalStorage(tmpDir)
 
 	tests := []struct {
 		name         string
@@ -216,19 +218,20 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 			fixedStore,
 			"",
 			"",
-			false,
+			true,
 		},
 		{
 			"good",
 			&Token{
 				info: &jwt.Info{
 					Payload: jwt.ClaimSet{
-						"sub": "load-login-info-good",
+						"sub":   "load-login-info-good",
+						"email": "test@exmaple.com",
 					},
 				},
 			},
 			fixedStore,
-			fixtureDir + "/logins/load-login-info-good.json",
+			tmpDir + "/logins/load-login-info-good.json",
 			"1234",
 			false,
 		},
@@ -256,13 +259,13 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 			}
 
 			// Run and assert.
-			got, err := p.LoadLoginInfo("1234", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36")
+			err := p.UpdateLoginInfo("1234", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LoadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
-			if got != nil && got.GoogleID != tt.wantID {
+			if p.loginInfo != nil && p.loginInfo.GoogleID != tt.wantID {
 				t.Errorf("LoadLoginInfo() incorrect info")
 				return
 			}

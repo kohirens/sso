@@ -323,40 +323,30 @@ func (p *Provider) HasTokenExpired(auth2 *OAuth2) bool {
 	return true
 }
 
-// LoadLoginInfo retrieve info without hitting Google servers.
-func (p *Provider) LoadLoginInfo(sessionID, userAgent string) (*sso.LoginInfo, error) {
-	if p.loginInfo != nil {
-		return p.loginInfo, nil
+// LoadLoginInfo retrieve previous login info from storage.
+//
+//	NOTE: This requires the client to have consented beforehand. The
+//	best time to call this method is during or right after the callback.
+func (p *Provider) LoadLoginInfo() error {
+	// Token must be set.
+	if p.Token == nil {
+		panic(stderr.NoToken)
 	}
 
-	var li *sso.LoginInfo
-
-	// Load the login info from storage.
+	// ClientID MUST be set.
 	liData, e1 := p.store.Load(p.loginFilename())
 	if e1 != nil { // When you cannot load it, then just make it.
-		Log.Warnf(e1.Error())
-		li = &sso.LoginInfo{
-			Devices: make(map[string]*sso.Device),
-		}
-	} else {
-		li = &sso.LoginInfo{}
-		if e := json.Unmarshal(liData, li); e != nil {
-			return nil, fmt.Errorf(stderr.EncodeJSON, e)
-		}
+		return e1
 	}
 
-	deviceId := sso.DeviceId([]byte(userAgent))
-	if _, found := li.Devices[deviceId]; found { // Lookup a device.
-		li.CurrentDeviceID = deviceId
-	} else { // Add device.
-		device := sso.NewDevice(userAgent, sessionID, p.Name())
-		li.Devices[device.ID] = device
-		li.CurrentDeviceID = device.ID
+	li := &sso.LoginInfo{}
+	if e := json.Unmarshal(liData, li); e != nil {
+		return fmt.Errorf(stderr.EncodeJSON, e)
 	}
 
 	p.loginInfo = li
 
-	return p.loginInfo, nil
+	return nil
 }
 
 // Name ID of the OIDC application registered with the provider
@@ -407,6 +397,44 @@ func (p *Provider) SaveLoginInfo() error {
 	}
 
 	return p.store.Save(p.loginFilename(), liData)
+}
+
+// UpdateLoginInfo Updates the login information.
+func (p *Provider) UpdateLoginInfo(sessionID, userAgent string) error {
+	if p.Token == nil {
+		panic(stderr.NoToken)
+	}
+
+	// Load login info
+
+	if e1 := p.LoadLoginInfo(); e1 != nil {
+		return e1
+	}
+	// Update login info.
+	p.loginInfo.GoogleID = p.ClientID()
+	p.loginInfo.RefreshToken = p.RefreshToken()
+	p.loginInfo.Email = p.ClientEmail()
+
+	// TODO: generate a device and store it in the ec cookie along with the account id.
+	deviceId := sso.DeviceId([]byte(userAgent))
+	if device, found := p.loginInfo.Devices[deviceId]; found { // Lookup a device.
+		p.loginInfo.CurrentDeviceID = deviceId
+		if device.SessionID != sessionID {
+
+		}
+	} else { // Add the device.
+		d := sso.NewDevice(userAgent, sessionID, p.Name())
+		p.loginInfo.Devices[d.ID] = device
+		p.loginInfo.CurrentDeviceID = d.ID
+		d.SessionID = sessionID
+	}
+
+	// Store that token away for safe keeping
+	if e := p.SaveLoginInfo(); e != nil {
+		return e
+	}
+
+	return nil
 }
 
 // ValidateToken Validate an ID token came from Google.
