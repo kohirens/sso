@@ -269,11 +269,6 @@ func (p *Provider) ClientEmail() string {
 	return email.(string)
 }
 
-// Device Get the device the user logged in with.
-func (p *Provider) Device() *sso.Device {
-	return p.loginInfo.Devices[p.loginInfo.CurrentDeviceID]
-}
-
 // ExchangeCodeForToken An authorization code obtained after the HttpClient
 // approves the permission request, which is then sent to Google for an ID
 // token obtained from Google.
@@ -400,7 +395,7 @@ func (p *Provider) RefreshToken() error {
 // RegisterLoginInfo Register new login information.
 //
 //	NOTE: This is the only time the user agent is set on a device.
-func (p *Provider) RegisterLoginInfo(sessionID, userAgent string) error {
+func (p *Provider) RegisterLoginInfo(sessionID, userAgent string) (*sso.LoginInfo, error) {
 	// Token must be set.
 	if p.Token == nil {
 		panic(stderr.NoToken)
@@ -420,10 +415,10 @@ func (p *Provider) RegisterLoginInfo(sessionID, userAgent string) error {
 
 	// register the login info
 	if e := p.SaveLoginInfo(); e != nil {
-		return e
+		return nil, e
 	}
 
-	return nil
+	return p.loginInfo, nil
 }
 
 // SaveLoginInfo Save info for retrieval without hitting Google servers.

@@ -6,11 +6,10 @@ import (
 )
 
 type LoginInfo struct {
-	CurrentDeviceID string
-	Devices         map[string]*Device `json:"devices"`
-	Email           string
-	ClientID        string      `json:"google_id"`
-	RefreshToken    interface{} `json:"refresh_token"`
+	Devices      map[string]*Device `json:"devices"`
+	Email        string
+	ClientID     string      `json:"google_id"`
+	RefreshToken interface{} `json:"refresh_token"`
 }
 
 // LookupDevice Search for the device in the login information.

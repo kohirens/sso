@@ -169,9 +169,8 @@ func TestProvider_SaveLoginInfo(t *testing.T) {
 				Token: tt.Token,
 				store: tt.Store,
 				loginInfo: &sso.LoginInfo{
-					CurrentDeviceID: "1234",
-					ClientID:        "4321",
-					Devices:         make(map[string]*sso.Device),
+					ClientID: "4321",
+					Devices:  make(map[string]*sso.Device),
 				},
 			}
 
@@ -319,7 +318,7 @@ func TestProvider_RegisterLoginInfo(t *testing.T) {
 			}
 
 			// Run and assert.
-			err := p.RegisterLoginInfo(tt.sessionID, tt.userAgent)
+			_, err := p.RegisterLoginInfo(tt.sessionID, tt.userAgent)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("loadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
