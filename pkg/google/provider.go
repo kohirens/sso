@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 type Provider struct {
@@ -329,20 +330,21 @@ func (p *Provider) HasTokenExpired(auth2 *OAuth2) bool {
 	return true
 }
 
-// LoadLoginInfo retrieve previous login info from storage.
+// loadLoginInfo retrieve previous login info from storage.
 //
 //	NOTE: This requires the client to have consented beforehand. The
 //	best time to call this method is during or right after the callback.
-func (p *Provider) LoadLoginInfo() error {
+func (p *Provider) loadLoginInfo() error {
 	// Token must be set.
 	if p.Token == nil {
 		panic(stderr.NoToken)
 	}
 
 	// ClientID MUST be set.
-	liData, e1 := p.store.Load(p.loginFilename())
+	filename := p.loginFilename()
+	liData, e1 := p.store.Load(filename)
 	if e1 != nil { // When you cannot load it, then just make it.
-		return e1
+		return &ErrNoLoginInfo{filename}
 	}
 
 	li := &sso.LoginInfo{}
@@ -395,6 +397,35 @@ func (p *Provider) RefreshToken() error {
 	return nil
 }
 
+// RegisterLoginInfo Register new login information.
+//
+//	NOTE: This is the only time the user agent is set on a device.
+func (p *Provider) RegisterLoginInfo(sessionID, userAgent string) error {
+	// Token must be set.
+	if p.Token == nil {
+		panic(stderr.NoToken)
+	}
+
+	li := &sso.LoginInfo{
+		Devices:      make(map[string]*sso.Device),
+		Email:        p.ClientEmail(),
+		ClientID:     p.ClientID(),
+		RefreshToken: p.Token.RefreshToken,
+	}
+
+	device := sso.NewDevice(userAgent, sessionID, p.Name())
+	li.Devices[device.ID] = device
+
+	p.loginInfo = li
+
+	// register the login info
+	if e := p.SaveLoginInfo(); e != nil {
+		return e
+	}
+
+	return nil
+}
+
 // SaveLoginInfo Save info for retrieval without hitting Google servers.
 func (p *Provider) SaveLoginInfo() error {
 	liData, e1 := json.Marshal(p.loginInfo)
@@ -405,41 +436,36 @@ func (p *Provider) SaveLoginInfo() error {
 	return p.store.Save(p.loginFilename(), liData)
 }
 
-// UpdateLoginInfo Updates the login information.
+// UpdateLoginInfo
+// Never update the user agent on the device, its only set on registration.
 func (p *Provider) UpdateLoginInfo(deviceID, sessionID, userAgent string) error {
 	if p.Token == nil {
 		panic(stderr.NoToken)
 	}
 
 	// Load login info
-	if e1 := p.LoadLoginInfo(); e1 != nil {
+	if e1 := p.loadLoginInfo(); e1 != nil {
+		// Report the information cannot be found.
 		return e1
 	}
 
 	// Update login info.
-	p.loginInfo.GoogleID = p.ClientID()
+	p.loginInfo.ClientID = p.ClientID()
 	p.loginInfo.RefreshToken = p.RefreshToken()
 	p.loginInfo.Email = p.ClientEmail()
 
-	// Lookup the device, otherwise treat it as a new device.
-	device, found := p.loginInfo.Devices[deviceID]
-	if found {
-		// Compare User Agent to validate it is the same device.
-		dua := device.UserAgent
-		ua := useragent.Parse(userAgent)
-		if dua.Device != ua.Device || dua.OSVersion != ua.OSVersion || dua.Name != ua.Name {
-			// this is a new device
-			device = nil
-		}
-	}
-
+	device := p.loginInfo.Devices[deviceID]
 	if device == nil {
-		device = sso.NewDevice(userAgent, sessionID, p.Name())
-		p.loginInfo.Devices[device.ID] = device
+		return &ErrDeviceNotFound{deviceID}
 	}
 
-	p.loginInfo.CurrentDeviceID = device.ID
+	// Sessions are ephemeral, so we just replace them.
 	device.SessionID = sessionID
+	if device.UserAgent == nil {
+		ua := useragent.Parse(userAgent)
+		device.UserAgent = &ua
+	}
+	device.LastActivity = time.Now()
 
 	// Store that token away for safe keeping
 	if e := p.SaveLoginInfo(); e != nil {

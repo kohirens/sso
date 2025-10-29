@@ -170,7 +170,7 @@ func TestProvider_SaveLoginInfo(t *testing.T) {
 				store: tt.Store,
 				loginInfo: &sso.LoginInfo{
 					CurrentDeviceID: "1234",
-					GoogleID:        "4321",
+					ClientID:        "4321",
 					Devices:         make(map[string]*sso.Device),
 				},
 			}
@@ -265,12 +265,68 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 			// Run and assert.
 			err := p.UpdateLoginInfo(tt.deviceID, "4321", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36")
 			if (err != nil) != tt.wantErr {
-				t.Errorf("LoadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("loadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
-			if p.loginInfo != nil && p.loginInfo.GoogleID != tt.wantID {
-				t.Errorf("LoadLoginInfo() incorrect info")
+			if p.loginInfo != nil && p.loginInfo.ClientID != tt.wantID {
+				t.Errorf("loadLoginInfo() incorrect info")
+				return
+			}
+		})
+	}
+}
+
+func TestProvider_RegisterLoginInfo(t *testing.T) {
+	ps := string(os.PathSeparator)
+	_ = fsio.CopyDirToDir(fixtureDir+ps+"logins", tmpDir+ps+"logins", ps, os.FileMode(0777))
+	fixedStore, _ := storage.NewLocalStorage(tmpDir)
+
+	tests := []struct {
+		name         string
+		Token        *Token
+		Store        storage.Storage
+		expectedFile string
+		sessionID    string
+		userAgent    string
+		wantID       string
+		wantErr      bool
+	}{
+		{
+			"good",
+			&Token{
+				info: &jwt.Info{
+					Payload: jwt.ClaimSet{
+						"sub":   "load-login-info-good",
+						"email": "test@exmaple.com",
+					},
+				},
+			},
+			fixedStore,
+			tmpDir + "/logins/load-login-info-good.json",
+			"session_id_4321",
+			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+			"load-login-info-good",
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup
+			p := &Provider{
+				Token: tt.Token,
+				store: tt.Store,
+			}
+
+			// Run and assert.
+			err := p.RegisterLoginInfo(tt.sessionID, tt.userAgent)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("loadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && p.loginInfo.ClientID != tt.wantID {
+				t.Errorf("loadLoginInfo() incorrect info")
 				return
 			}
 		})
