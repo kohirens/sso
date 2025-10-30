@@ -2,6 +2,7 @@
   "refresh_token":  "",
   "devices": {
     "84779adf-91d2-50a4-bffe-ddd2f43b6c53": {
+      "id": "84779adf-91d2-50a4-bffe-ddd2f43b6c53",
       "session_id": "4321",
       "oidc_provider": "google",
       "user_agent": {
@@ -12,5 +13,5 @@
       }
     }
   },
-  "google_id": "1234"
+  "google_id": "load-login-info-good"
 }

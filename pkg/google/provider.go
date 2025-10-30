@@ -335,7 +335,7 @@ func (p *Provider) HasTokenExpired(auth2 *OAuth2) bool {
 //
 //	NOTE: This requires the client to have consented beforehand. The
 //	best time to call this method is during or right after the callback.
-func (p *Provider) LoadLoginInfo() error {
+func (p *Provider) LoadLoginInfo(deviceID, sessionID, userAgent string) (*sso.LoginInfo, error) {
 	// Token must be set.
 	if p.Token == nil {
 		panic(stderr.NoToken)
@@ -345,17 +345,28 @@ func (p *Provider) LoadLoginInfo() error {
 	filename := p.loginFilename()
 	liData, e1 := p.store.Load(filename)
 	if e1 != nil { // When you cannot load it, then just make it.
-		return &ErrNoLoginInfo{filename}
+		return nil, &ErrNoLoginInfo{filename}
 	}
 
 	li := &sso.LoginInfo{}
 	if e := json.Unmarshal(liData, li); e != nil {
-		return fmt.Errorf(stderr.EncodeJSON, e)
+		return nil, fmt.Errorf(stderr.EncodeJSON, e)
 	}
 
 	p.loginInfo = li
+	// look for the device
+	var err error
+	if deviceID != "" {
+		d, e := p.loginInfo.LookupDevice(deviceID, sessionID, userAgent)
+		if e != nil {
+			Log.Warnf("%v", e.Error())
+		}
+		if d != nil {
+			p.deviceID = d.ID
+		}
+	}
 
-	return nil
+	return p.loginInfo, err
 }
 
 // Name ID of the OIDC application registered with the provider
@@ -442,15 +453,12 @@ func (p *Provider) SaveLoginInfo() error {
 // Never update the user agent on the device, its only set on registration.
 func (p *Provider) UpdateLoginInfo(deviceID, sessionID, userAgent string) error {
 	if p.Token == nil {
-		panic(stderr.NoToken)
+		return &ErrNoToken{}
 	}
 
-	// Load login info
-	if e1 := p.LoadLoginInfo(); e1 != nil {
-		// Report the information cannot be found.
-		return e1
+	if p.loginInfo == nil {
+		return &ErrNoLoginInfo{deviceID}
 	}
-
 	// Update login info.
 	p.loginInfo.ClientID = p.ClientID()
 	p.loginInfo.RefreshToken = p.RefreshToken()

@@ -262,7 +262,88 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 			}
 
 			// Run and assert.
-			err := p.UpdateLoginInfo(tt.deviceID, "4321", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36")
+			_, err := p.LoadLoginInfo(tt.deviceID, "4321", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36")
+			if (err != nil) != tt.wantErr {
+				t.Errorf("LoadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if p.loginInfo != nil && p.loginInfo.ClientID != tt.wantID {
+				t.Errorf("LoadLoginInfo() incorrect info")
+				return
+			}
+
+			if p.loginInfo != nil && p.DeviceID() != tt.deviceID {
+				t.Errorf("LoadLoginInfo() incorrect info")
+				return
+			}
+		})
+	}
+}
+func TestProvider_UpdateLoginInfo(t *testing.T) {
+	ps := string(os.PathSeparator)
+	_ = fsio.CopyDirToDir(fixtureDir+ps+"logins", tmpDir+ps+"logins", ps, os.FileMode(0777))
+	fixedStore, _ := storage.NewLocalStorage(tmpDir)
+	fixUserAgent := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+
+	tests := []struct {
+		name         string
+		Token        *Token
+		Store        storage.Storage
+		expectedFile string
+		deviceID     string
+		wantID       string
+		userAgent    string
+		wantErr      bool
+	}{
+		{
+			"login_not_found",
+			&Token{
+				info: &jwt.Info{
+					Payload: jwt.ClaimSet{
+						"sub": "account-not-found",
+					},
+				},
+			},
+			fixedStore,
+			"",
+			"4321",
+			"",
+			fixUserAgent,
+			true,
+		},
+		{
+			"good",
+			&Token{
+				info: &jwt.Info{
+					Payload: jwt.ClaimSet{
+						"sub":   "load-login-info-good",
+						"email": "test@exmaple.com",
+					},
+				},
+			},
+			fixedStore,
+			tmpDir + "/logins/load-login-info-good.json",
+			"84779adf-91d2-50a4-bffe-ddd2f43b6c53",
+			"load-login-info-good",
+			fixUserAgent,
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup
+			p := &Provider{
+				Token: tt.Token,
+				store: tt.Store,
+			}
+
+			if tt.deviceID != "" {
+				_, _ = p.LoadLoginInfo(tt.deviceID, "4321", tt.userAgent)
+			}
+
+			// Run and assert.
+			err := p.UpdateLoginInfo(tt.deviceID, "4321", tt.userAgent)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LoadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -320,12 +401,12 @@ func TestProvider_RegisterLoginInfo(t *testing.T) {
 			// Run and assert.
 			_, err := p.RegisterLoginInfo(tt.sessionID, tt.userAgent)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("LoadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("RegisterLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
 			if !tt.wantErr && p.loginInfo.ClientID != tt.wantID {
-				t.Errorf("LoadLoginInfo() incorrect info")
+				t.Errorf("RegisterLoginInfo() incorrect info")
 				return
 			}
 		})
