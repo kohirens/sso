@@ -412,13 +412,14 @@ func (p *Provider) RefreshToken() error {
 // RegisterLoginInfo Register new login information.
 //
 //	NOTE: This is the only time the user agent is set on a device.
-func (p *Provider) RegisterLoginInfo(sessionID, userAgent string) (*sso.LoginInfo, error) {
+func (p *Provider) RegisterLoginInfo(accountID, sessionID, userAgent string) (*sso.LoginInfo, error) {
 	// Token must be set.
 	if p.Token == nil {
 		panic(stderr.NoToken)
 	}
 
 	li := &sso.LoginInfo{
+		AccountID:    accountID,
 		Devices:      make(map[string]*sso.Device),
 		Email:        p.ClientEmail(),
 		ClientID:     p.ClientID(),

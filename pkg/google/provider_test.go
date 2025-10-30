@@ -399,7 +399,7 @@ func TestProvider_RegisterLoginInfo(t *testing.T) {
 			}
 
 			// Run and assert.
-			_, err := p.RegisterLoginInfo(tt.sessionID, tt.userAgent)
+			_, err := p.RegisterLoginInfo("", tt.sessionID, tt.userAgent)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RegisterLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return

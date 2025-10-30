@@ -6,6 +6,7 @@ import (
 )
 
 type LoginInfo struct {
+	AccountID    string
 	Devices      map[string]*Device `json:"devices"`
 	Email        string
 	ClientID     string      `json:"google_id"`
