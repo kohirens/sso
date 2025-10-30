@@ -614,10 +614,10 @@ func (p *Provider) sendWithRetry(method, url string, data []byte, headers http.H
 		resBody, _ := io.ReadAll(res.Body)
 		_ = res.Body.Close()
 		if attempt == retries {
-			return nil, fmt.Errorf(stderr.Response, res.StatusCode, string(resBody))
+			return nil, fmt.Errorf(stderr.ResponseFinal, res.StatusCode, string(resBody))
 		}
 
-		Log.Warnf(stderr.Response, res.StatusCode, string(resBody))
+		Log.Warnf(stderr.ResponseAttempts, attempt, res.StatusCode, string(resBody))
 		res = nil
 	}
 
