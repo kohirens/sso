@@ -17,7 +17,8 @@ import (
 )
 
 type Provider struct {
-	Code string `json:"code"`
+	Code     string `json:"code"`
+	deviceID string
 	// DiscoveryDoc contains well known info about the OIDC G discoveryDocument
 	DiscoveryDoc *DiscoverDoc `json:"discoveryDocument"`
 	// Hd To optimize the OpenID Connect flow for users of a particular domain
@@ -140,6 +141,11 @@ func (p *Provider) ClientID() string {
 	}
 
 	return sub.(string)
+}
+
+// DeviceID Get the ID of the device the user is currently logged in with.
+func (p *Provider) DeviceID() string {
+	return p.deviceID
 }
 
 func (p *Provider) DiscoveryDocDownload() error {
@@ -411,6 +417,7 @@ func (p *Provider) RegisterLoginInfo(sessionID, userAgent string) (*sso.LoginInf
 	device := sso.NewDevice(userAgent, sessionID, p.Name())
 	li.Devices[device.ID] = device
 
+	p.deviceID = device.ID
 	p.loginInfo = li
 
 	// register the login info
@@ -454,6 +461,7 @@ func (p *Provider) UpdateLoginInfo(deviceID, sessionID, userAgent string) error 
 		return &ErrDeviceNotFound{deviceID}
 	}
 
+	p.deviceID = device.ID
 	// Sessions are ephemeral, so we just replace them.
 	device.SessionID = sessionID
 	if device.UserAgent == nil {
