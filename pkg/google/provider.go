@@ -331,11 +331,11 @@ func (p *Provider) HasTokenExpired(auth2 *OAuth2) bool {
 	return true
 }
 
-// loadLoginInfo retrieve previous login info from storage.
+// LoadLoginInfo retrieve previous login info from storage.
 //
 //	NOTE: This requires the client to have consented beforehand. The
 //	best time to call this method is during or right after the callback.
-func (p *Provider) loadLoginInfo() error {
+func (p *Provider) LoadLoginInfo() error {
 	// Token must be set.
 	if p.Token == nil {
 		panic(stderr.NoToken)
@@ -446,7 +446,7 @@ func (p *Provider) UpdateLoginInfo(deviceID, sessionID, userAgent string) error 
 	}
 
 	// Load login info
-	if e1 := p.loadLoginInfo(); e1 != nil {
+	if e1 := p.LoadLoginInfo(); e1 != nil {
 		// Report the information cannot be found.
 		return e1
 	}

@@ -264,12 +264,12 @@ func TestProvider_LoadLoginInfo(t *testing.T) {
 			// Run and assert.
 			err := p.UpdateLoginInfo(tt.deviceID, "4321", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36")
 			if (err != nil) != tt.wantErr {
-				t.Errorf("loadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("LoadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
 			if p.loginInfo != nil && p.loginInfo.ClientID != tt.wantID {
-				t.Errorf("loadLoginInfo() incorrect info")
+				t.Errorf("LoadLoginInfo() incorrect info")
 				return
 			}
 		})
@@ -320,12 +320,12 @@ func TestProvider_RegisterLoginInfo(t *testing.T) {
 			// Run and assert.
 			_, err := p.RegisterLoginInfo(tt.sessionID, tt.userAgent)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("loadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("LoadLoginInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
 			if !tt.wantErr && p.loginInfo.ClientID != tt.wantID {
-				t.Errorf("loadLoginInfo() incorrect info")
+				t.Errorf("LoadLoginInfo() incorrect info")
 				return
 			}
 		})
