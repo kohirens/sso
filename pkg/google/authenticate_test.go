@@ -1,6 +1,7 @@
 package google
 
 import (
+	"github.com/kohirens/sso"
 	"regexp"
 	"testing"
 )
@@ -18,7 +19,7 @@ func TestNewState(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := NewState()
+			got := sso.NewState()
 
 			re := regexp.MustCompile(`^[a-f0-9-]{36,}$`)
 			if !re.MatchString(got) {

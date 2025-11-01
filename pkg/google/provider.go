@@ -72,7 +72,7 @@ func (p *Provider) AuthLink(loginHint string) (string, error) {
 		url.QueryEscape(p.OAuth2.RedirectURI),
 		p.OAuth2.ClientID,
 		p.State,
-		NewNonce(),
+		sso.NewNonce(),
 	)
 
 	if loginHint != "" {

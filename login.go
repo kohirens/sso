@@ -11,6 +11,7 @@ type LoginInfo struct {
 	Email        string
 	ClientID     string      `json:"google_id"`
 	RefreshToken interface{} `json:"refresh_token"`
+	Token        Token       `json:"token"`
 }
 
 // LookupDevice Search for the device in the login information.

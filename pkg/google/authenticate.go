@@ -3,8 +3,8 @@ package google
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/kohirens/json-web-token"
+	"github.com/kohirens/sso"
 	"io"
 	"net/url"
 	"time"
@@ -59,24 +59,14 @@ func (t *Token) Validate() bool {
 	return t.Expired()
 }
 
-// NewState Generates an anti-forgery unique session token.
-func NewState() string {
-	return uuid.New().String()
-}
-
 // NewStateWith Generates an anti-forgery unique session token, along with the
 // URI needed to recover the context when the user returns to your application
 // Read more at state:
 // https://developers.google.com/identity/openid-connect/openid-connect#state-param
 func NewStateWith(uri string) string {
-	state := fmt.Sprintf("security_token=%vurl=%v", NewState(), uri)
+	state := fmt.Sprintf("security_token=%vurl=%v", sso.NewState(), uri)
 
 	return url.QueryEscape(state)
-}
-
-// NewNonce A random value generated that enables replay protection.
-func NewNonce() string {
-	return uuid.New().String()
 }
 
 // loadToken Convert token data to a Token.
