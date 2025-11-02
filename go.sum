@@ -40,6 +40,8 @@ github.com/kohirens/json-web-token v0.0.0-20251010155233-f326c8352886 h1:wQuWXx9
 github.com/kohirens/json-web-token v0.0.0-20251010155233-f326c8352886/go.mod h1:iMKPiZgRwpUUseVXHFtHrgEiLBL1H/TOfeATl1a1xNo=
 github.com/kohirens/stdlib v0.0.0-20251021130544-e22b450a40f5 h1:99Uq/BDr63A0uziZcVURvk4ehgvnOcUSZLpcosM00go=
 github.com/kohirens/stdlib v0.0.0-20251021130544-e22b450a40f5/go.mod h1:tyePzzvEyJdHREgJk2SUQkqbdXtoHKFD7Lyl+7r9qFQ=
+github.com/kohirens/stdlib v0.0.0-20251102122639-e2c3fc4bd022 h1:mAkI7mFeP6U5wFsTjlgWK9lms/s5rWT6voO/hPTcmZM=
+github.com/kohirens/stdlib v0.0.0-20251102122639-e2c3fc4bd022/go.mod h1:tyePzzvEyJdHREgJk2SUQkqbdXtoHKFD7Lyl+7r9qFQ=
 github.com/kohirens/www v0.0.0-20251026221903-bf0c8038f986 h1:6IgrBGpBb0S5Tcm19223Sp6zJqHzirmDDmXS7G78u0E=
 github.com/kohirens/www v0.0.0-20251026221903-bf0c8038f986/go.mod h1:GGKanp6EUOWkzyJpoXu5FCPA31U3qTWFiq/wuyaSCAc=
 github.com/mileusna/useragent v1.3.5 h1:SJM5NzBmh/hO+4LGeATKpaEX9+b4vcGg2qXGLiNGDws=
