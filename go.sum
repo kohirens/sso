@@ -1,3 +1,5 @@
+github.com/aws/aws-lambda-go v1.47.0 h1:0H8s0vumYx/YKs4sE7YM0ktwL2eWse+kfopsRI1sXVI=
+github.com/aws/aws-lambda-go v1.47.0/go.mod h1:dpMpZgvWx5vuQJfBt0zqBha60q7Dd7RfgJv23DymV8A=
 github.com/aws/aws-sdk-go-v2 v1.36.3 h1:mJoei2CxPutQVxaATCzDUjcZEjVRdpsiiXi2o38yqWM=
 github.com/aws/aws-sdk-go-v2 v1.36.3/go.mod h1:LLXuLpgzEbD766Z5ECcRmi8AzSwfZItDtmABVkRLGzg=
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.10 h1:zAybnyUQXIZ5mok5Jqwlf58/TFE7uvd3IAsa1aF9cXs=
@@ -44,5 +46,7 @@ github.com/kohirens/stdlib v0.0.0-20251102122639-e2c3fc4bd022 h1:mAkI7mFeP6U5wFs
 github.com/kohirens/stdlib v0.0.0-20251102122639-e2c3fc4bd022/go.mod h1:tyePzzvEyJdHREgJk2SUQkqbdXtoHKFD7Lyl+7r9qFQ=
 github.com/kohirens/www v0.0.0-20251026221903-bf0c8038f986 h1:6IgrBGpBb0S5Tcm19223Sp6zJqHzirmDDmXS7G78u0E=
 github.com/kohirens/www v0.0.0-20251026221903-bf0c8038f986/go.mod h1:GGKanp6EUOWkzyJpoXu5FCPA31U3qTWFiq/wuyaSCAc=
+github.com/kohirens/www v0.0.0-20251102020236-d2165433b7e8 h1:QbMBdkNOZX6ot9lqG+rQWJgdy1IFYPHXfzDoVThnD7Q=
+github.com/kohirens/www v0.0.0-20251102020236-d2165433b7e8/go.mod h1:cLlbIGND+gsTvLSB0BWbQV++Ql4YyFeuaXDMdHb/FhU=
 github.com/mileusna/useragent v1.3.5 h1:SJM5NzBmh/hO+4LGeATKpaEX9+b4vcGg2qXGLiNGDws=
 github.com/mileusna/useragent v1.3.5/go.mod h1:3d8TOmwL/5I8pJjyVDteHtgDGcefrFUX4ccGOMKNYYc=
