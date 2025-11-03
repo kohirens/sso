@@ -50,7 +50,7 @@ func (p *Provider) Application() string {
 // Authenticated Indicates if the HttpClient has been successfully authenticated by
 // Google.
 func (p *Provider) Authenticated() bool {
-	Log.Dbugf(stdout.VerifyAuth)
+	Log.Dbugf("%v", stdout.VerifyAuth)
 
 	return p.Token != nil && !p.Token.Expired() // Time has expired
 }
@@ -137,7 +137,7 @@ func (p *Provider) ClientID() string {
 
 	sub, ok := idToken.Payload["sub"]
 	if !ok {
-		panic(fmt.Sprintf(stderr.IDTokenNoSub))
+		panic(fmt.Sprintf("%v", stderr.IDTokenNoSub))
 	}
 
 	return sub.(string)
@@ -193,7 +193,7 @@ func (p *Provider) LoadCertificate() error {
 	filename := p.location(keyCertificate)
 	dd, e1 := p.store.Load(filename)
 	if e1 != nil {
-		Log.Warnf(e1.Error())
+		Log.Warnf("%v", e1.Error())
 		goto download
 	}
 
@@ -201,10 +201,10 @@ func (p *Provider) LoadCertificate() error {
 	if e2 == nil {
 		return nil
 	}
-	Log.Warnf(e2.Error())
+	Log.Warnf("%v", e2.Error())
 
 download:
-	Log.Errf(stderr.CertificateCache)
+	Log.Errf("%v", stderr.CertificateCache)
 
 	// Download the Google Certificate
 	if e := p.Certificate(); e != nil {
@@ -213,7 +213,7 @@ download:
 
 	// Save to the storage device.
 	if e := p.store.Save(filename, p.JWKs.rawBytes); e != nil {
-		Log.Warnf(e.Error())
+		Log.Warnf("%v", e.Error())
 	}
 
 	Log.Infof("should have saved certificate to %v", keyCertificate)
@@ -226,7 +226,7 @@ func (p *Provider) LoadDiscoveryDoc() error {
 	filename := p.location(keyDiscoveryDoc)
 	dd, e1 := p.store.Load(filename)
 	if e1 != nil {
-		Log.Warnf(e1.Error())
+		Log.Warnf("%v", e1.Error())
 		goto download
 	}
 
@@ -240,14 +240,14 @@ func (p *Provider) LoadDiscoveryDoc() error {
 
 download:
 
-	Log.Errf(stderr.DiscoveryDocCache)
+	Log.Errf("%v", stderr.DiscoveryDocCache)
 	// Download the Google Discover Document
 	if e := p.DiscoveryDocDownload(); e != nil {
 		return e
 	}
 
 	if e := p.store.Save(filename, p.DiscoveryDoc.rawBytes); e != nil {
-		Log.Warnf(e.Error())
+		Log.Warnf("%v", e.Error())
 	}
 
 	//  to the storage device.
@@ -263,7 +263,7 @@ func (p *Provider) ClientEmail() string {
 
 	email, ok := idToken.Payload["email"]
 	if !ok {
-		panic(fmt.Sprintf(stderr.IDTokenNoEmail))
+		panic(fmt.Sprintf("%v", stderr.IDTokenNoEmail))
 	}
 
 	return email.(string)
@@ -285,7 +285,7 @@ func (p *Provider) ExchangeCodeForToken(state, code string) error {
 	Log.Dbugf(stdout.GoogleTokenUri, uri)
 
 	if p.OAuth2 == nil {
-		return fmt.Errorf(stderr.OAuth2Nil)
+		return fmt.Errorf("%v", stderr.OAuth2Nil)
 	}
 
 	reqBody := fmt.Sprintf(
@@ -386,7 +386,7 @@ func (p *Provider) RefreshToken() error {
 	headers.Add("Content-Type", "application/x-www-form-urlencoded")
 	res, e1 := p.sendWithRetry("POST", uri, []byte(reqBody), headers, http.StatusOK, 3)
 	if e1 != nil {
-		return fmt.Errorf(e1.Error())
+		return fmt.Errorf("%v", e1.Error())
 	}
 
 	token, e3 := loadToken(res.Body)
@@ -497,7 +497,7 @@ func (p *Provider) UpdateLoginInfo(deviceID, sessionID, userAgent string) error 
 // https://developers.google.com/identity/openid-connect/openid-connect#validatinganidtoken
 func (p *Provider) ValidateToken(token *Token) error {
 	if token == nil {
-		return fmt.Errorf(stderr.ValidateTokenNil)
+		return fmt.Errorf("%v", stderr.ValidateTokenNil)
 	}
 
 	// Convert the ID token string into code.
@@ -507,7 +507,7 @@ func (p *Provider) ValidateToken(token *Token) error {
 	}
 
 	if p.JWKs == nil {
-		return fmt.Errorf(stderr.NoCerts)
+		return fmt.Errorf("%v", stderr.NoCerts)
 	}
 
 	// Get the RSA public keys which we have retrieved from Google.
@@ -524,7 +524,7 @@ func (p *Provider) ValidateToken(token *Token) error {
 		}
 	}
 	if !valid {
-		return fmt.Errorf(stderr.SignatureVerify)
+		return fmt.Errorf("%v", stderr.SignatureVerify)
 	}
 
 	// 2. Verify that the value of the iss claim in the ID token is equal to https://accounts.google.com or accounts.google.com.
@@ -549,7 +549,7 @@ func (p *Provider) ValidateToken(token *Token) error {
 
 	// 4. Verify that the expiry time (exp claim) of the ID token has not passed.
 	if token.Expired() {
-		return fmt.Errorf(stderr.ValidateTokenExp)
+		return fmt.Errorf("%v", stderr.ValidateTokenExp)
 	}
 
 	// TODO: Test with an hd passed into the authorization URL.
