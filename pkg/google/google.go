@@ -22,16 +22,26 @@ const (
 	keyCertificate  = "google_certificate"
 )
 
+// HttpClient Methods needed to make HTTP request.
 type HttpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+// Session An session manager to be compatible with this library.
 type Session interface {
+	// Get Return any data previously stored by this library.
 	Get(key string) []byte
+	// Remove Delete any data previously stored by this library.
 	Remove(key string) error
+	// Set Save any data this library will need to retrieve at a later time.
+	// This should persist across request, for example HTTP request.
 	Set(key string, value []byte)
 }
 
+// Log A logger that follows the Kohirens standard of logging; where a human
+// comprehensible error message is treated as equal to an error code. Having
+// either one should point directly to where to problem in the code lies. In
+// fact the error code can be omitted if so desired.
 var Log = &logger.Standard{}
 
 // NewAuth Provider Authentication object using credentials found in the

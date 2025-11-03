@@ -175,6 +175,7 @@ func (p *Provider) DiscoveryDocDownload() error {
 	return nil
 }
 
+// DiscoverDoc
 func (p *Provider) DiscoverDoc(dd []byte) error {
 	if e := json.Unmarshal(dd, p.DiscoveryDoc); e != nil {
 		return fmt.Errorf(stderr.DecodeJSON, e.Error())
@@ -229,7 +230,7 @@ func (p *Provider) LoadDiscoveryDoc() error {
 		goto download
 	}
 
-	{ // Even though e2 is only used before the download label, Go prevents using goto that skips over this declaration, the blocks help a little.
+	{
 		e2 := p.DiscoverDoc(dd)
 		if e2 == nil {
 			return nil
@@ -250,13 +251,6 @@ download:
 	}
 
 	//  to the storage device.
-	return nil
-}
-
-// SignOut Should invalidate any token used to sign in.
-// Will also remove any data stored in the session,
-func (p *Provider) SignOut() error {
-	// TODO: Implement
 	return nil
 }
 
@@ -450,8 +444,20 @@ func (p *Provider) SaveLoginInfo() error {
 	return p.store.Save(p.loginFilename(), liData)
 }
 
-// UpdateLoginInfo
-// Never update the user agent on the device, its only set on registration.
+// SignOut Should invalidate any token used to sign in.
+// Will also remove any data stored in the session,
+func (p *Provider) SignOut() error {
+	// TODO: Implement
+	// so far I see no way to logout other than delete thesssion
+	// and maybe revoke the token.
+	return nil
+}
+
+// UpdateLoginInfo Address changes in the users login information, list the
+// devices, last activity time, etc.
+//
+//	NOTE: Never update the provider ClientID nor the user agent on the device,
+//	these are only set on registration.
 func (p *Provider) UpdateLoginInfo(deviceID, sessionID, userAgent string) error {
 	if p.Token == nil {
 		return &ErrNoToken{}
@@ -590,7 +596,7 @@ func (p *Provider) location(filename string) string {
 	return filename + ".json"
 }
 
-// loginFile where to look for the file containing login information.
+// loginFilename loginFile where to look for the file containing login information.
 func (p *Provider) loginFilename() string {
 	return p.location("logins/" + p.ClientID())
 }
