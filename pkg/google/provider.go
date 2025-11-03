@@ -467,7 +467,6 @@ func (p *Provider) UpdateLoginInfo(deviceID, sessionID, userAgent string) error 
 		return &ErrNoLoginInfo{deviceID}
 	}
 	// Update login info.
-	p.loginInfo.ClientID = p.ClientID()
 	p.loginInfo.RefreshToken = p.RefreshToken()
 	p.loginInfo.Email = p.ClientEmail()
 
