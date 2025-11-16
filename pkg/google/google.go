@@ -2,21 +2,19 @@ package google
 
 import (
 	"fmt"
-	"github.com/kohirens/stdlib/logger"
-	"github.com/kohirens/www/storage"
 	"net/http"
 	"os"
+
+	"github.com/kohirens/stdlib/logger"
+	"github.com/kohirens/www/storage"
 )
 
 const (
-	envOIDCAuthURI      = "GOOGLE_OIDC_AUTH_URI"
-	envOIDCCertURL      = "GOOGLE_OIDC_AUTH_PROVIDER_X509_CERT_URL"
+	envDiscoverDocURL   = "GOOGLE_DISCOVERY_DOC_URL"
 	envOIDCClientID     = "GOOGLE_OIDC_CLIENT_ID"
 	envOIDCClientSecret = "GOOGLE_OIDC_CLIENT_SECRET"
 	envOIDCProjectID    = "GOOGLE_OIDC_PROJECT_ID"
-	envOIDCTokenURI     = "GOOGLE_OIDC_TOKEN_URI"
 	envOIDCRedirectURIs = "GOOGLE_OIDC_REDIRECT_URIS"
-	envDiscoverDocURL   = "GOOGLE_DISCOVERY_DOC_URL"
 
 	keyDiscoveryDoc = "google_discovery_document"
 	keyCertificate  = "google_certificate"

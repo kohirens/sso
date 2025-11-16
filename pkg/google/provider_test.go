@@ -2,15 +2,17 @@ package google
 
 import (
 	"bytes"
+	"encoding/json"
+	"io"
+	"net/http"
+	"os"
+	"testing"
+
 	jwt "github.com/kohirens/json-web-token"
 	"github.com/kohirens/sso"
 	"github.com/kohirens/stdlib/fsio"
 	"github.com/kohirens/stdlib/test"
 	"github.com/kohirens/www/storage"
-	"io"
-	"net/http"
-	"os"
-	"testing"
 )
 
 const (
@@ -25,32 +27,25 @@ func TestMain(m *testing.M) {
 }
 
 func TestProvider_ExchangeCodeForToken(t *testing.T) {
-	type fields struct {
-		Code         string
-		DiscoveryDoc *DiscoverDoc
-		Hd           string
-		JWKs         *JwksUriv3
-		OAuth2       *OAuth2
-		ProjectID    string
-		Scopes       []string
-		State        string
-		Token        *Token
-		client       HttpClient
-		session      Session
-		store        storage.Storage
-	}
+	b, _ := os.ReadFile(fixtureDir + "/google_discovery_document.json")
+	fixedDiscovery := &DiscoverDoc{}
+	_ = json.Unmarshal(b, fixedDiscovery)
+	emptyDiscovery := &DiscoverDoc{}
+
 	tests := []struct {
-		name    string
-		state   string
-		code    string
-		envs    map[string]string
-		client  HttpClient
-		wantErr bool
+		name      string
+		state     string
+		code      string
+		envs      map[string]string
+		client    HttpClient
+		discovery *DiscoverDoc
+		wantErr   bool
 	}{
 		{
 			"unknown",
 			"abc",
 			"xyz",
+			nil,
 			nil,
 			nil,
 			true,
@@ -61,6 +56,7 @@ func TestProvider_ExchangeCodeForToken(t *testing.T) {
 			"xyz",
 			nil,
 			nil,
+			emptyDiscovery,
 			true,
 		},
 		{
@@ -82,24 +78,16 @@ func TestProvider_ExchangeCodeForToken(t *testing.T) {
 					}, nil
 				},
 			},
+			fixedDiscovery,
 			true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Provider{
-				//Code:         tt.Code,
-				//DiscoveryDoc: tt.DiscoveryDoc,
-				//Hd:           tt.Hd,
-				//JWKs:         tt.JWKs,
-				//OAuth2:       tt.OAuth2,
-				//ProjectID:    tt.ProjectID,
-				//Scopes:       tt.Scopes,
-				State: tt.state,
-				//Token:        tt.Token,
-				client: tt.client,
-				//session:      tt.session,
-				//store:        tt.store,
+				State:        tt.state,
+				client:       tt.client,
+				DiscoveryDoc: tt.discovery,
 			}
 			if tt.envs != nil {
 				for k, v := range tt.envs {
@@ -286,6 +274,10 @@ func TestProvider_UpdateLoginInfo(t *testing.T) {
 	fixedStore, _ := storage.NewLocalStorage(tmpDir)
 	fixUserAgent := "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
 
+	b, _ := os.ReadFile(fixtureDir + "/google_discovery_document.json")
+	fixedDiscovery := &DiscoverDoc{}
+	_ = json.Unmarshal(b, fixedDiscovery)
+
 	tests := []struct {
 		name         string
 		Token        *Token
@@ -294,6 +286,9 @@ func TestProvider_UpdateLoginInfo(t *testing.T) {
 		deviceID     string
 		wantID       string
 		userAgent    string
+		discovery    *DiscoverDoc
+		oAuth        *OAuth2
+		client       HttpClient
 		wantErr      bool
 	}{
 		{
@@ -310,6 +305,9 @@ func TestProvider_UpdateLoginInfo(t *testing.T) {
 			"4321",
 			"",
 			fixUserAgent,
+			nil,
+			nil,
+			nil,
 			true,
 		},
 		{
@@ -321,12 +319,20 @@ func TestProvider_UpdateLoginInfo(t *testing.T) {
 						"email": "test@exmaple.com",
 					},
 				},
+				RefreshToken: "abc1234",
 			},
 			fixedStore,
 			tmpDir + "/logins/load-login-info-good.json",
 			"84779adf-91d2-50a4-bffe-ddd2f43b6c53",
 			"load-login-info-good",
 			fixUserAgent,
+			fixedDiscovery,
+			&OAuth2{},
+			&test.MockHttpClient{
+				DoHandler: func(r *http.Request) (*http.Response, error) {
+					return &http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewBuffer([]byte{}))}, nil
+				},
+			},
 			false,
 		},
 	}
@@ -334,8 +340,11 @@ func TestProvider_UpdateLoginInfo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
 			p := &Provider{
-				Token: tt.Token,
-				store: tt.Store,
+				Token:        tt.Token,
+				store:        tt.Store,
+				DiscoveryDoc: tt.discovery,
+				OAuth2:       tt.oAuth,
+				client:       tt.client,
 			}
 
 			if tt.deviceID != "" {
