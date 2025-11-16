@@ -7,7 +7,7 @@ toolchain go1.24.9
 require (
 	github.com/google/uuid v1.6.0
 	github.com/kohirens/json-web-token v0.0.0-20251010155233-f326c8352886
-	github.com/kohirens/stdlib v0.0.0-20251102122639-e2c3fc4bd022
+	github.com/kohirens/stdlib v0.0.0-20251116220215-be05dccab2a1
 	github.com/kohirens/www v0.0.0-20251111164910-78480d31a173
 	github.com/mileusna/useragent v1.3.5
 )
