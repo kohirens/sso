@@ -5,30 +5,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
+	"net/url"
+	"time"
+
+	"github.com/kohirens/sso/oidc"
 )
-
-type JWK struct {
-	Kty string `json:"kty"`
-	E   string `json:"e"`
-	Use string `json:"use"`
-	N   string `json:"n"`
-	Kid string `json:"kid"`
-	Alg string `json:"alg"`
-}
-
-type JwksUriv3 struct {
-	Keys     []*JWK `json:"keys"`
-	rawBytes []byte
-}
-
-func (k *JwksUriv3) Bytes() []byte {
-	return k.rawBytes
-}
-
-func (k *JwksUriv3) String() string {
-	return string(k.rawBytes)
-}
 
 func LoadJwksUriv3(data []byte) (*JwksUriv3, error) {
 	cert := &JwksUriv3{}
@@ -42,7 +25,17 @@ func LoadJwksUriv3(data []byte) (*JwksUriv3, error) {
 	return cert, nil
 }
 
-// ParseRSAPublicKeys Convert JWK structures into keys. This was meant to handle
+// NewStateWith Generates an anti-forgery unique session token, along with the
+// URI needed to recover the context when the user returns to your application
+// Read more at state:
+// https://developers.google.com/identity/openid-connect/openid-connect#state-param
+func NewStateWith(uri string) string {
+	state := fmt.Sprintf("security_token=%vurl=%v", oidc.State(), uri)
+
+	return url.QueryEscape(state)
+}
+
+// ParseRSAPublicKeys Convert JWK structures into keys. This is meant to handle
 // certs in the format that Google jwks_uri v3 returns.
 func ParseRSAPublicKeys(certs []*JWK) ([]*rsa.PublicKey, error) {
 	keys := make([]*rsa.PublicKey, len(certs))
@@ -68,4 +61,22 @@ func ParseRSAPublicKeys(certs []*JWK) ([]*rsa.PublicKey, error) {
 	}
 
 	return keys, nil
+}
+
+// loadToken Convert token data to a Token.
+func loadToken(rc io.ReadCloser) (*Token, error) {
+	resBody, e2 := io.ReadAll(rc)
+	if e2 != nil {
+		return nil, fmt.Errorf(stderr.ReadResponse, e2.Error())
+	}
+
+	token := &Token{}
+	if e := json.Unmarshal(resBody, token); e != nil {
+		return nil, fmt.Errorf(stderr.DecodeJSON, e.Error())
+	}
+
+	exp := time.Now().UTC().Add(time.Duration(token.ExpiresIn) * time.Second)
+	token.Exp = &exp
+
+	return token, nil
 }

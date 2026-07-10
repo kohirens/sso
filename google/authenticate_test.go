@@ -1,9 +1,10 @@
 package google
 
 import (
-	"github.com/kohirens/sso"
 	"regexp"
 	"testing"
+
+	"github.com/kohirens/sso/oidc"
 )
 
 // TestNewState Check that unique session tokens meet expectations
@@ -19,7 +20,7 @@ func TestNewState(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := sso.NewState()
+			got := oidc.State()
 
 			re := regexp.MustCompile(`^[a-f0-9-]{36,}$`)
 			if !re.MatchString(got) {

@@ -2,11 +2,11 @@ package google
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 
+	"github.com/kohirens/sso/oidc"
 	"github.com/kohirens/stdlib/logger"
-	"github.com/kohirens/www/storage"
+	"github.com/kohirens/storage"
 )
 
 const (
@@ -20,27 +20,15 @@ const (
 	keyCertificate  = "google_certificate"
 )
 
-// HttpClient Methods needed to make HTTP request.
-type HttpClient interface {
-	Do(req *http.Request) (*http.Response, error)
-}
+var (
+	DefaultScopes = []string{"openid", "profile", "email"}
 
-// Session An session manager to be compatible with this library.
-type Session interface {
-	// Get Return any data previously stored by this library.
-	Get(key string) []byte
-	// Remove Delete any data previously stored by this library.
-	Remove(key string) error
-	// Set Save any data this library will need to retrieve at a later time.
-	// This should persist across request, for example HTTP request.
-	Set(key string, value []byte)
-}
-
-// Log A logger that follows the Kohirens standard of logging; where a human
-// comprehensible error message is treated as equal to an error code. Having
-// either one should point directly to where to problem in the code lies. In
-// fact the error code can be omitted if so desired.
-var Log = &logger.Standard{}
+	// Log A logger that follows the Kohirens standard of logging; where a human
+	// comprehensible error message is treated as equal to an error code. Having
+	// either one should point directly to where to problem in the code lies. In
+	// fact the error code can be omitted if so desired.
+	Log = &logger.Standard{}
+)
 
 // NewAuth Provider Authentication object using credentials found in the
 // environment.
@@ -74,7 +62,7 @@ func NewAuth() (*OAuth2, error) {
 
 // NewProvider Initialize a Google OIDC provider to authenticate a client
 // requesting access to your application.
-func NewProvider(client HttpClient, store storage.Storage, session Session, prefix string) (*Provider, error) {
+func NewProvider(client oidc.HttpClient, store storage.Storage, session oidc.SessionManager, prefix string) (*Provider, error) {
 	oauth2, e1 := NewAuth()
 	if e1 != nil {
 		return nil, e1

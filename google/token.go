@@ -1,20 +1,10 @@
 package google
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/kohirens/json-web-token"
-	"github.com/kohirens/sso"
-	"io"
-	"net/url"
 	"time"
-)
 
-type OAuth2 struct {
-	ClientID     string
-	ClientSecret string
-	RedirectURI  string
-}
+	jwt "github.com/kohirens/json-web-token"
+)
 
 type Token struct {
 	AccessToken  string `json:"access_token"`            // AccessToken A token that can be sent to a Google API.
@@ -57,32 +47,4 @@ func (t *Token) Validate() bool {
 	// Verify that the value of the aud claim in the ID token is equal to your app's client ID.
 	// Verify that the expiry time (exp claim) of the ID token has not passed.
 	return t.Expired()
-}
-
-// NewStateWith Generates an anti-forgery unique session token, along with the
-// URI needed to recover the context when the user returns to your application
-// Read more at state:
-// https://developers.google.com/identity/openid-connect/openid-connect#state-param
-func NewStateWith(uri string) string {
-	state := fmt.Sprintf("security_token=%vurl=%v", sso.NewState(), uri)
-
-	return url.QueryEscape(state)
-}
-
-// loadToken Convert token data to a Token.
-func loadToken(rc io.ReadCloser) (*Token, error) {
-	resBody, e2 := io.ReadAll(rc)
-	if e2 != nil {
-		return nil, fmt.Errorf(stderr.ReadResponse, e2.Error())
-	}
-
-	token := &Token{}
-	if e := json.Unmarshal(resBody, token); e != nil {
-		return nil, fmt.Errorf(stderr.DecodeJSON, e.Error())
-	}
-
-	exp := time.Now().UTC().Add(time.Duration(token.ExpiresIn) * time.Second)
-	token.Exp = &exp
-
-	return token, nil
 }

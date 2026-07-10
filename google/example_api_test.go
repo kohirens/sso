@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kohirens/sso/pkg/google"
+	"github.com/kohirens/sso/google"
 	"github.com/kohirens/stdlib/fsio"
 	"github.com/kohirens/stdlib/test"
 	"github.com/kohirens/www/backend"

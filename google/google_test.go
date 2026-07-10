@@ -1,9 +1,10 @@
 package google
 
 import (
-	jwt "github.com/kohirens/json-web-token"
 	"testing"
 	"time"
+
+	jwt "github.com/kohirens/json-web-token"
 )
 
 func TestGoogleProvider_Authenticated(t *testing.T) {

@@ -1,7 +1,6 @@
 package google
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,12 +8,10 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	jwt "github.com/kohirens/json-web-token"
-	"github.com/kohirens/sso"
+	"github.com/kohirens/sso/oidc"
 	"github.com/kohirens/www/storage"
-	"github.com/mileusna/useragent"
 )
 
 type Provider struct {
@@ -35,12 +32,11 @@ type Provider struct {
 	Scopes    []string `json:"scopes"`
 	State     string   `json:"state"`
 	// Credentials Clients login username and password.
-	Token     *Token `json:"credentials"`
-	client    HttpClient
-	Prefix    string
-	session   Session
-	store     storage.Storage
-	loginInfo *sso.LoginInfo
+	Token   *Token `json:"token"`
+	client  oidc.HttpClient
+	Prefix  string
+	session oidc.SessionManager
+	store   storage.Storage
 }
 
 // Application Name of the project made in Google Cloud app.
@@ -73,7 +69,7 @@ func (p *Provider) AuthLink(loginHint string) (string, error) {
 		url.QueryEscape(p.OAuth2.RedirectURI),
 		p.OAuth2.ClientID,
 		p.State,
-		sso.NewNonce(),
+		oidc.Nonce(),
 	)
 
 	if loginHint != "" {
@@ -98,7 +94,7 @@ func (p *Provider) Certificate() error {
 
 	Log.Infof(stdout.Url, uri)
 
-	res, e1 := SendWithRetry(p.client, "GET", uri, nil, nil, 200, 3)
+	res, e1 := oidc.SendWithRetry(p.client, "GET", uri, nil, nil, 200, 3)
 	if e1 != nil {
 		return fmt.Errorf(stderr.Response, e1.Error())
 	}
@@ -144,11 +140,6 @@ func (p *Provider) ClientID() string {
 	return sub.(string)
 }
 
-// DeviceID Get the ID of the device the user is currently logged in with.
-func (p *Provider) DeviceID() string {
-	return p.deviceID
-}
-
 func (p *Provider) DiscoveryDocDownload() error {
 	uri := os.Getenv(envDiscoverDocURL)
 	if uri == "" {
@@ -157,7 +148,7 @@ func (p *Provider) DiscoveryDocDownload() error {
 
 	Log.Infof(stdout.Url, uri)
 
-	res, e1 := SendWithRetry(p.client, "GET", uri, nil, nil, 200, 3)
+	res, e1 := oidc.SendWithRetry(p.client, "GET", uri, nil, nil, 200, 3)
 	if e1 != nil {
 		return fmt.Errorf(stderr.Response, e1.Error())
 	}
@@ -300,7 +291,7 @@ func (p *Provider) ExchangeCodeForToken(state, code string) error {
 	headers := http.Header{}
 	headers.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	res, e1 := SendWithRetry(p.client, "POST", uri, []byte(reqBody), headers, http.StatusOK, 3)
+	res, e1 := oidc.SendWithRetry(p.client, "POST", uri, []byte(reqBody), headers, http.StatusOK, 3)
 	if e1 != nil {
 		return e1
 	}
@@ -330,46 +321,9 @@ func (p *Provider) HasTokenExpired(auth2 *OAuth2) bool {
 	return true
 }
 
-// LoadLoginInfo retrieve previous login info from storage.
-//
-//	NOTE: This requires the client to have consented beforehand. The
-//	best time to call this method is during or right after the callback.
-func (p *Provider) LoadLoginInfo(deviceID, sessionID, userAgent string) (*sso.LoginInfo, error) {
-	// Token must be set.
-	if p.Token == nil {
-		panic(stderr.NoToken)
-	}
-
-	// ClientID MUST be set.
-	filename := p.loginFilename()
-	liData, e1 := p.store.Load(filename)
-	if e1 != nil { // When you cannot load it, then just make it.
-		return nil, &ErrNoLoginInfo{filename}
-	}
-
-	li := &sso.LoginInfo{}
-	if e := json.Unmarshal(liData, li); e != nil {
-		return nil, fmt.Errorf(stderr.EncodeJSON, e)
-	}
-
-	p.loginInfo = li
-	// look for the device
-	var err error
-	if deviceID != "" {
-		d, e := p.loginInfo.LookupDevice(deviceID, sessionID, userAgent)
-		if e != nil {
-			Log.Warnf("%v", e.Error())
-		}
-		if d != nil {
-			p.deviceID = d.ID
-		}
-	}
-
-	return p.loginInfo, err
-}
-
 // Name ID of the OIDC application registered with the provider
 func (p *Provider) Name() string {
+	// TODO: Implement
 	return "google"
 }
 
@@ -389,9 +343,12 @@ func (p *Provider) RefreshToken() error {
 
 	headers := http.Header{}
 	headers.Add("Content-Type", "application/x-www-form-urlencoded")
-	res, e1 := SendWithRetry(p.client, "POST", uri, []byte(reqBody), headers, http.StatusOK, 3)
+	res, e1 := oidc.SendWithRetry(p.client, "POST", uri, []byte(reqBody), headers, http.StatusOK, 3)
 	if e1 != nil {
 		return fmt.Errorf("%v", e1.Error())
+	}
+	if res == nil {
+		return fmt.Errorf("no valid response")
 	}
 
 	token, e3 := loadToken(res.Body)
@@ -408,92 +365,12 @@ func (p *Provider) RefreshToken() error {
 	return nil
 }
 
-// RegisterLoginInfo Register new login information.
-//
-//	NOTE: This is the only time the user agent is set on a device.
-func (p *Provider) RegisterLoginInfo(accountID, sessionID, userAgent string) (*sso.LoginInfo, error) {
-	// Token must be set.
-	if p.Token == nil {
-		panic(stderr.NoToken)
-	}
-
-	li := &sso.LoginInfo{
-		AccountID:    accountID,
-		Devices:      make(map[string]*sso.Device),
-		Email:        p.ClientEmail(),
-		ClientID:     p.ClientID(),
-		RefreshToken: p.Token.RefreshToken,
-	}
-
-	device := sso.NewDevice(userAgent, sessionID, p.Name())
-	li.Devices[device.ID] = device
-
-	p.deviceID = device.ID
-	p.loginInfo = li
-
-	// register the login info
-	if e := p.SaveLoginInfo(); e != nil {
-		return nil, e
-	}
-
-	return p.loginInfo, nil
-}
-
-// SaveLoginInfo Save info for retrieval without hitting Google servers.
-func (p *Provider) SaveLoginInfo() error {
-	liData, e1 := json.Marshal(p.loginInfo)
-	if e1 != nil {
-		return fmt.Errorf(stderr.EncodeJSON, e1.Error())
-	}
-
-	return p.store.Save(p.loginFilename(), liData)
-}
-
 // SignOut Should invalidate any token used to sign in.
 // Will also remove any data stored in the session,
 func (p *Provider) SignOut() error {
 	// TODO: Implement
 	// so far I see no way to logout other than delete thesssion
 	// and maybe revoke the token.
-	return nil
-}
-
-// UpdateLoginInfo Address changes in the users login information, list the
-// devices, last activity time, etc.
-//
-//	NOTE: Never update the provider ClientID nor the user agent on the device,
-//	these are only set on registration.
-func (p *Provider) UpdateLoginInfo(deviceID, sessionID, userAgent string) error {
-	if p.Token == nil {
-		return &ErrNoToken{}
-	}
-
-	if p.loginInfo == nil {
-		return &ErrNoLoginInfo{deviceID}
-	}
-	// Update login info.
-	p.loginInfo.RefreshToken = p.RefreshToken()
-	p.loginInfo.Email = p.ClientEmail()
-
-	device := p.loginInfo.Devices[deviceID]
-	if device == nil {
-		return &ErrDeviceNotFound{deviceID}
-	}
-
-	p.deviceID = device.ID
-	// Sessions are ephemeral, so we just replace them.
-	device.SessionID = sessionID
-	if device.UserAgent == nil {
-		ua := useragent.Parse(userAgent)
-		device.UserAgent = &ua
-	}
-	device.LastActivity = time.Now()
-
-	// Store that token away for safe keeping
-	if e := p.SaveLoginInfo(); e != nil {
-		return e
-	}
-
 	return nil
 }
 
@@ -598,72 +475,4 @@ func (p *Provider) location(filename string) string {
 		return p.Prefix + "/" + filename + ".json"
 	}
 	return filename + ".json"
-}
-
-// loginFilename loginFile where to look for the file containing login information.
-func (p *Provider) loginFilename() string {
-	return p.location("logins/" + p.ClientID())
-}
-
-// SendWithRetry Make an HTTP request, retrying up to so many times.
-// NOTE: Response will be nil when the expected status code is not met, be
-// careful to set the correct code, this function does not work if multiple HTTP
-// status codes are acceptable.
-//
-// Also, you can have an error returned with a valid response. This is due to
-// the fact that any errors caused by previous attempts are compiled into a
-// single error and returned along with the valid response.
-func SendWithRetry(
-	httpClient HttpClient,
-	method, url string,
-	data []byte,
-	headers http.Header,
-	code,
-	retries int,
-) (*http.Response, error) {
-	body := bytes.NewBuffer(data)
-
-	req, e1 := http.NewRequest(method, url, body)
-	if e1 != nil {
-		return nil, fmt.Errorf(stderr.BuildRequest, e1.Error())
-	}
-
-	req.Header = headers
-	var lastResponse *http.Response
-	var errMessage string
-
-	for attempt := 1; attempt <= retries; attempt++ {
-		res, err := httpClient.Do(req)
-		if err != nil {
-			errMessage += fmt.Sprintf(stderr.RetryRequest, err.Error())
-			continue
-		}
-
-		if res.StatusCode == code {
-			lastResponse = res
-			break
-		}
-
-		// condition where response is not the expected status code but err is
-		// nil
-		// We throw this back at the app to let the dev know they should handle
-		// this particular case.
-		resBody, _ := io.ReadAll(res.Body)
-		_ = res.Body.Close()
-
-		errMessage += fmt.Sprintf(stderr.UnexpectedCode, attempt, url, res.StatusCode, string(resBody))
-
-		res = nil
-	}
-
-	var lastErr error
-	if errMessage != "" {
-		lastErr = fmt.Errorf("%v", errMessage)
-	}
-
-	if lastResponse == nil {
-		return nil, lastErr
-	}
-
-	return lastResponse, lastErr
 }

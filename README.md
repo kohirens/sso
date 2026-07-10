@@ -1,18 +1,30 @@
 # SSO
 
-Single Sign On with OIDC providers Apple and Google, authored by Khalifah
-Khalil Shabazz.
+Based on OIDC, these libraries were made to allow clients to sign in with an
+OIDC provider. You get Apple and Google out-of-the-box.
 
 ## Summary
 
-This library was made to allow clients to sign in with an OIDC provider. By
-default, it includes packages for Apple and Google out-of-the-box. It make take
-some effort to integrate this library directly into an application since there
-is no standard around integration methods currently. Once you do, the benefits
-allow your clients use of a login provider they know and may trust, automate
-account setup in your system, and semi-automate granting them permissions in
-your app. This can save them time of manually making an account; and having to
-store yet another password.
+This project consist of several libraries that serve as a framework, which is
+meant to provide developers with a comprehensive approach to implementing login
+based on OAuth 2.0 using the OIDC layer.
+
+The idea is that you import an OIDC provider that implements rules set by
+interfaces in the `oidc` library. At the start of your application, configure
+the library with info from your chosen OIDC provider. You SHOULD only need to
+write minimal code to get it working. Initially it may take you an hour to
+read the docs and comprehend, but 5-20 minutes to implement, depending on your
+stack.
+
+There is the main `oidc` library which contains interfaces that each provider
+MUST implement. The OIDC Provider implementations are separate libraries so that
+you only pull in what you need. To add a provider is just another package, no
+worries about conflicts with other providers or versions.
+
+The benefits allow your clients use of a login provider they know and may trust.
+Account setup and scheme are integrated into this system. So it is not
+compatible with existing login systems. However, for new system this can save
+time having to implement your own.
 
 ## Reasons
 
@@ -66,5 +78,5 @@ account.
 2. name. See this [AuthLink Example] or a [Kohirens webapp Example].
 
 ---
-[AuthLink Example]: pkg/google/example_authlink_test.go
-[Kohirens webapp Example]: pkg/google/example_api_test.go
+[AuthLink Example]: google/example_authlink_test.go
+[Kohirens webapp Example]: google/example_api_test.go

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/kohirens/sso/pkg/google"
+	"github.com/kohirens/sso/google"
 	"github.com/kohirens/stdlib/logger"
 	"github.com/kohirens/www/backend"
 	login "github.com/kohirens/www/login/google"
