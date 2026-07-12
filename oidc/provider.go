@@ -16,7 +16,7 @@ type Provider interface {
 	SignOut() error
 	// UserInfo provided basic user information such as first and last name,
 	// email, and phone.
-	UserInfo() *UserInfo
+	UserInfo() UserInfo
 	// String convert to JSON output for serialization.
 	String() string
 }

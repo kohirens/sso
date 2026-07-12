@@ -25,17 +25,17 @@ func TestMain(m *testing.M) {
 
 func TestProvider_ExchangeCodeForToken(t *testing.T) {
 	b, _ := os.ReadFile(fixtureDir + "/google_discovery_document.json")
-	fixedDiscovery := &DiscoverDoc{}
+	fixedDiscovery := &DiscoveryDoc{}
 	_ = json.Unmarshal(b, fixedDiscovery)
-	emptyDiscovery := &DiscoverDoc{}
+	emptyDiscovery := &DiscoveryDoc{}
 
 	tests := []struct {
 		name      string
 		state     string
 		code      string
 		envs      map[string]string
-		client    HttpClient
-		discovery *DiscoverDoc
+		client    oidc.HttpClient
+		discovery *DiscoveryDoc
 		wantErr   bool
 	}{
 		{

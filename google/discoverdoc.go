@@ -1,6 +1,6 @@
 package google
 
-type DiscoverDoc struct {
+type DiscoveryDoc struct {
 	Issuer                            string   `json:"issuer"`
 	AuthorizationEndpoint             string   `json:"authorization_endpoint"`
 	DeviceAuthorizationEndpoint       string   `json:"device_authorization_endpoint"`
@@ -19,6 +19,6 @@ type DiscoverDoc struct {
 	rawBytes                          []byte
 }
 
-func (dd *DiscoverDoc) Bytes() []byte {
+func (dd *DiscoveryDoc) Bytes() []byte {
 	return dd.rawBytes
 }

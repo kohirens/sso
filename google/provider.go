@@ -18,7 +18,7 @@ type Provider struct {
 	Code     string `json:"code"`
 	deviceID string
 	// DiscoveryDoc contains well known info about the OIDC G discoveryDocument
-	DiscoveryDoc *DiscoverDoc `json:"discoveryDocument"`
+	DiscoveryDoc *DiscoveryDoc `json:"discoveryDocument"`
 	// Hd To optimize the OpenID Connect flow for users of a particular domain
 	// associated with a Google Workspace or Cloud organization.
 	Hd string `json:"hd"`
@@ -167,7 +167,7 @@ func (p *Provider) DiscoveryDocDownload() error {
 	return nil
 }
 
-// DiscoverDoc
+// DiscoveryDoc
 func (p *Provider) DiscoverDoc(dd []byte) error {
 	if e := json.Unmarshal(dd, p.DiscoveryDoc); e != nil {
 		return fmt.Errorf(stderr.DecodeJSON, e.Error())
