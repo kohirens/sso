@@ -32,11 +32,12 @@ type Provider struct {
 	Scopes    []string `json:"scopes"`
 	State     string   `json:"state"`
 	// Credentials Clients login username and password.
-	Token   *Token `json:"token"`
-	client  oidc.HttpClient
-	Prefix  string
-	session oidc.SessionManager
-	store   storage.Storage
+	Token    *Token `json:"token"`
+	client   oidc.HttpClient
+	Prefix   string
+	session  oidc.SessionManager
+	store    storage.Storage
+	userInfo *UserInfo
 }
 
 // Application Name of the project made in Google Cloud app.
@@ -443,6 +444,12 @@ func (p *Provider) ValidateToken(token *Token) error {
 	}
 
 	return nil
+}
+
+// UserInfo Indicates if the HttpClient has been successfully authenticated by
+// Google.
+func (p *Provider) UserInfo() oidc.UserInfo {
+	return p.userInfo
 }
 
 // VerifyState Verify the state returned from the request matches the
