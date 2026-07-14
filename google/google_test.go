@@ -55,7 +55,7 @@ func TestClientID(t *testing.T) {
 		{
 			name: "consistent",
 			p: &Provider{
-				ProjectID: "test-app",
+				projectID: "test-app",
 				Token:     &Token{IDToken: fixTokenID},
 				OAuth2:    nil,
 				Scopes:    nil,

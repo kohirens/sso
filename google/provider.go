@@ -19,9 +19,10 @@ const (
 	fState = "state"
 )
 
+var _ oidc.Provider = (*Provider)(nil)
+
 type Provider struct {
-	Code     string `json:"code"`
-	deviceID string
+	Code string `json:"code"`
 	// DiscoveryDoc contains well known info about the OIDC G discoveryDocument
 	DiscoveryDoc *DiscoveryDoc `json:"discoveryDocument"`
 	// Hd To optimize the OpenID Connect flow for users of a particular domain
@@ -32,8 +33,8 @@ type Provider struct {
 	// environment this application runs in.
 	JWKs   *JwksUriv3 `json:"keys"`
 	OAuth2 *OAuth2
-	// ProjectID name of the made in Google Cloud app.
-	ProjectID string   `json:"application"`
+	// projectID name of the made in Google Cloud app.
+	projectID string
 	Scopes    []string `json:"scopes"`
 	State     string   `json:"state"`
 	// Credentials Clients login username and password.
@@ -47,7 +48,7 @@ type Provider struct {
 
 // Application Name of the project made in Google Cloud app.
 func (p *Provider) Application() string {
-	return p.ProjectID
+	return p.projectID
 }
 
 // Authenticated Indicates if the HttpClient has been successfully authenticated by
@@ -386,9 +387,58 @@ func (p *Provider) RefreshToken() error {
 // Will also remove any data stored in the session,
 func (p *Provider) SignOut() error {
 	// TODO: Implement
-	// so far I see no way to logout other than delete thesssion
+	// so far I see no way to logout other than delete the session
 	// and maybe revoke the token.
 	return nil
+}
+
+func (p *Provider) String() string {
+	js := `"code":"` + p.Code + `",`
+
+	discoveryDoc, e1 := json.Marshal(p.DiscoveryDoc)
+	if e1 != nil {
+		panic(e1)
+	}
+	js += `"discoveryDocument":` + string(discoveryDoc) + `,`
+
+	js += `"hd":` + p.Hd + `",`
+
+	jwks, e2 := json.Marshal(p.JWKs)
+	if e2 != nil {
+		panic(e2)
+	}
+	js += `"jwks":` + string(jwks) + `",`
+
+	oauth2, e3 := json.Marshal(p.OAuth2)
+	if e3 != nil {
+		panic(e3)
+	}
+	js += `"oauth2":` + string(oauth2) + `",`
+
+	// projectID name of the made in Google Cloud app.
+	js += `"projectID":` + p.projectID + `",`
+
+	scopes, e4 := json.Marshal(p.Scopes)
+	if e4 != nil {
+		panic(e4)
+	}
+	js += `"scopes":` + string(scopes) + `",`
+
+	js += `"state":` + p.State + `",`
+
+	token, e5 := json.Marshal(p.Token)
+	if e5 != nil {
+		panic(e5)
+	}
+	js += `"token":` + string(token) + `",`
+
+	userInfo, e6 := json.Marshal(p.userInfo)
+	if e6 != nil {
+		panic(e6)
+	}
+	js += `"userInfo":` + string(userInfo) + `",`
+
+	return "{" + js + "}"
 }
 
 // ValidateToken Validate an ID token came from Google.
@@ -434,7 +484,7 @@ func (p *Provider) ValidateToken(token *Token) error {
 	// 3. Verify that the value of the aud claim in the ID token is equal to your app's client ID.
 	encAud, ok2 := info.Payload["aud"]
 	if !ok2 {
-		return fmt.Errorf(stderr.ValidateTokenAud, encAud, p.ProjectID)
+		return fmt.Errorf(stderr.ValidateTokenAud, encAud, p.projectID)
 	}
 	aud, e4 := url.QueryUnescape(encAud.(string))
 	if e4 != nil {

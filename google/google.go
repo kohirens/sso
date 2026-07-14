@@ -75,7 +75,7 @@ func NewProvider(client oidc.HttpClient, store storage.Storage, session oidc.Ses
 
 	gp := &Provider{
 		DiscoveryDoc: &DiscoveryDoc{},
-		ProjectID:    projectID,
+		projectID:    projectID,
 		OAuth2:       oauth2,
 		Scopes:       []string{"openid", "profile", "email"},
 		State:        NewStateWith(oauth2.RedirectURI),
