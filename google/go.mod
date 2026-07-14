@@ -4,9 +4,10 @@ go 1.24.9
 
 require (
 	github.com/kohirens/json-web-token v0.0.0-20251010155233-f326c8352886
+	github.com/kohirens/sso/oidc v0.0.0-20260714100018-e892608dd054
 	github.com/kohirens/stdlib v0.0.0-20251219022316-7c7cc7222efd
+	github.com/kohirens/storage v0.0.0-20260312155212-08e9aadf0305
 	github.com/kohirens/www v0.0.0-20260429020112-04dc2eb33bf8
-	github.com/mileusna/useragent v1.3.5
 )
 
 require (
@@ -32,9 +33,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.6 // indirect
 	github.com/aws/smithy-go v1.24.2 // indirect
 	github.com/cloudflare/circl v1.6.1 // indirect
+	github.com/gofrs/uuid/v5 v5.4.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/kohirens/sso v0.0.0-20260224193101-be9248dd35d6 // indirect
-	github.com/kohirens/storage v0.0.0-20260312155212-08e9aadf0305 // indirect
+	github.com/mileusna/useragent v1.3.5 // indirect
 	golang.org/x/crypto v0.45.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 )
