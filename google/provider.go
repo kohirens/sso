@@ -14,6 +14,11 @@ import (
 	"github.com/kohirens/www/storage"
 )
 
+const (
+	fCode  = "code"
+	fState = "state"
+)
+
 type Provider struct {
 	Code     string `json:"code"`
 	deviceID string
@@ -84,6 +89,17 @@ func (p *Provider) AuthLink(loginHint string) (string, error) {
 	Log.Dbugf("Google OIDC Auth URI: %s", uri)
 
 	return uri, nil
+}
+
+func (p *Provider) Callback(params url.Values) error {
+	code := params.Get(fCode)
+	state := params.Get(fState)
+	// Exchange the 1 time code for an ID and refresh tokens.
+	if e := p.ExchangeCodeForToken(state, code); e != nil {
+		return e
+	}
+
+	return nil
 }
 
 // Certificate JWK Download the certificates for validating ID tokens from Google.
