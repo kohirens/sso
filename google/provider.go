@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	fCode  = "code"
-	fState = "state"
+	fCode          = "code"
+	fState         = "state"
+	prefixProvider = "google/"
 )
 
 var _ oidc.Provider = (*Provider)(nil)
@@ -40,7 +41,6 @@ type Provider struct {
 	// Credentials Clients login username and password.
 	Token    *Token `json:"token"`
 	client   oidc.HttpClient
-	Prefix   string
 	session  oidc.SessionManager
 	store    storage.Storage
 	userInfo *UserInfo
@@ -544,8 +544,5 @@ func (p *Provider) VerifyState(returnedSate string) error {
 
 // location Return the storage location.
 func (p *Provider) location(filename string) string {
-	if p.Prefix != "" {
-		return p.Prefix + "/" + filename + ".json"
-	}
-	return filename + ".json"
+	return prefixProvider + filename + ".json"
 }

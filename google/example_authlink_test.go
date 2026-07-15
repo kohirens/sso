@@ -70,7 +70,7 @@ func Example() {
 	sm := session.NewManager(store, sessionDir, sessionTimeout)
 
 	// Initialize a Google OIDC Provider.
-	gp, e3 := google.NewProvider(&http.Client{}, store, sm, "")
+	gp, e3 := google.NewProvider(&http.Client{}, store, sm)
 	if e3 != nil {
 		mainErr = e3
 		return

@@ -62,7 +62,7 @@ func NewAuth() (*OAuth2, error) {
 
 // NewProvider Initialize a Google OIDC provider to authenticate a client
 // requesting access to your application.
-func NewProvider(client oidc.HttpClient, store storage.Storage, session oidc.SessionManager, prefix string) (*Provider, error) {
+func NewProvider(client oidc.HttpClient, store storage.Storage, session oidc.SessionManager) (*Provider, error) {
 	oauth2, e1 := NewAuth()
 	if e1 != nil {
 		return nil, e1
@@ -82,7 +82,6 @@ func NewProvider(client oidc.HttpClient, store storage.Storage, session oidc.Ses
 		client:       client,
 		session:      session,
 		store:        store,
-		Prefix:       prefix,
 	}
 
 	if e := gp.LoadDiscoveryDoc(); e != nil {
